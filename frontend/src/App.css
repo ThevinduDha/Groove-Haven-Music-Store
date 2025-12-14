@@ -1,0 +1,120 @@
+/* 1. Global Reset & Dark Theme */
+:root {
+  --bg-color: #121212;
+  --card-bg: #1e1e1e;
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --accent-color: #1db954; /* Spotify Green */
+  --accent-hover: #1ed760;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+}
+
+/* 2. Main Container */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+/* 3. Header Styling */
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.header h1 {
+  font-size: 3rem;
+  margin: 0;
+  background: linear-gradient(90deg, #1db954, #1e90ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 4. The Form (Glassmorphism look) */
+.form-container {
+  background-color: var(--card-bg);
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  margin-bottom: 50px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.form-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+input {
+  background: #333;
+  border: 1px solid #444;
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: 0.3s;
+}
+
+input:focus {
+  border-color: var(--accent-color);
+  background: #444;
+}
+
+.add-btn {
+  background-color: var(--accent-color);
+  color: black;
+  font-weight: bold;
+  padding: 15px;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: transform 0.2s;
+}
+
+.add-btn:hover {
+  background-color: var(--accent-hover);
+  transform: scale(1.02);
+}
+
+/* 5. The Artist Grid (Cards) */
+.artist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Auto-fit cards */
+  gap: 25px;
+}
+
+.artist-card {
+  background-color: var(--card-bg);
+  padding: 20px;
+  border-radius: 12px;
+  transition: transform 0.3s, background-color 0.3s;
+  border-bottom: 4px solid transparent;
+}
+
+.artist-card:hover {
+  transform: translateY(-5px); /* Lift up effect */
+  background-color: #282828;
+  border-bottom: 4px solid var(--accent-color);
+}
+
+.artist-name {
+  margin: 0 0 10px 0;
+  font-size: 1.5rem;
+}
+
+.artist-bio {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
