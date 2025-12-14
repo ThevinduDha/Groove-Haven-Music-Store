@@ -26,4 +26,27 @@ public class ArtistController {
     public Artist createArtist(@RequestBody Artist artist) {
         return artistRepository.save(artist);
     }
+
+    // 3. UPDATE: Change details of an existing artist
+    @PutMapping("/{id}")
+    public Artist updateArtist(@PathVariable Long id, @RequestBody Artist artistDetails) {
+        // Step 1: Find the artist or throw an error
+        Artist artist = artistRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Artist not found with id: " + id));
+
+        // Step 2: Update the fields
+        artist.setName(artistDetails.getName());
+        artist.setBio(artistDetails.getBio());
+        artist.setImageUniqueId(artistDetails.getImageUniqueId());
+
+        // Step 3: Save back to database
+        return artistRepository.save(artist);
+    }
+
+    // 4. DELETE: Remove an artist
+    @DeleteMapping("/{id}")
+    public String deleteArtist(@PathVariable Long id) {
+        artistRepository.deleteById(id);
+        return "Artist deleted successfully with id: " + id;
+    }
 }
