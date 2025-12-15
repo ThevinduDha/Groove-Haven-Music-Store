@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css' 
-import Login from './Login' // Import the new Login Component
+import Login from './Login'
 
 // --- ICONS (SVG) ---
 const HomeIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
@@ -11,23 +11,25 @@ const HeartIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="currentC
 const PlayIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="black"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
 const PencilIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
 const TrashIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-// Verified Blue Tick Icon
 const VerifiedIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="#3d91f4"><path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.7L1 12l2.44 2.79-.34 3.7 3.61.82L8.6 22.5l3.4-1.47 3.4 1.46 1.89-3.19 3.61-.82-.34-3.69L23 12zm-12.91 4.72l-3.8-3.81 1.48-1.48 2.32 2.33 5.85-5.87 1.48 1.48-7.33 7.35z"></path></svg>
 
-
 function App() {
-  // --- AUTH STATE ---
-  const [user, setUser] = useState(null) // If null, user is not logged in
-
+  const [user, setUser] = useState(null)
   const [artists, setArtists] = useState([])
   const [showForm, setShowForm] = useState(false) 
-  
   const [searchTerm, setSearchTerm] = useState("") 
   const [editingId, setEditingId] = useState(null) 
-
   const [name, setName] = useState("")
   const [bio, setBio] = useState("")
   const [imageUniqueId, setImageUniqueId] = useState("")
+
+  // --- NEW: Dynamic Greeting Logic ---
+  const getGreeting = () => {
+      const hour = new Date().getHours();
+      if (hour < 12) return "Good Morning";
+      if (hour < 18) return "Good Afternoon";
+      return "Good Evening";
+  }
 
   // Only fetch data if user is logged in
   useEffect(() => { 
@@ -63,7 +65,6 @@ function App() {
     e.stopPropagation();
     setName(artist.name); setBio(artist.bio); setImageUniqueId(artist.imageUniqueId);
     setEditingId(artist.id); setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   const handleDeleteArtist = (e, id) => {
@@ -90,7 +91,7 @@ function App() {
 
   // --- 🔓 IF LOGGED IN, SHOW DASHBOARD ---
   return (
-    <div className="app-layout">
+    <div className="app-layout" style={{height: '100vh', overflow: 'hidden'}}>
       
       {/* SIDEBAR */}
       <div className="sidebar">
@@ -125,10 +126,10 @@ function App() {
 
         {/* User Profile Section */}
         <div onClick={() => setUser(null)} style={{marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', borderRadius: '8px', cursor: 'pointer', background:'rgba(255,255,255,0.05)'}}>
-            <img src={`https://ui-avatars.com/api/?name=${user.username}&background=random`} style={{width:'32px', borderRadius:'50%'}} alt="User" />
+            <img src={`https://ui-avatars.com/api/?name=${user.firstName || user.username}&background=random`} style={{width:'32px', borderRadius:'50%'}} alt="User" />
             <div>
                 <div style={{fontSize: '0.9rem', fontWeight: '700', display:'flex', alignItems:'center', gap:'5px'}}>
-                    {user.username}
+                    {user.firstName || user.username}
                     {user.verified && <VerifiedIcon />} {/* Blue Tick! */}
                 </div>
                 <div style={{fontSize: '0.75rem', color:'#b3b3b3', textTransform:'capitalize'}}>{user.role.toLowerCase()}</div>
@@ -137,11 +138,12 @@ function App() {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="main-content">
+      <div className="main-content" style={{overflowY: 'auto'}}>
         
         <div className="header-bar">
+            {/* 👇 DYNAMIC GREETING WITH NAME */}
             <div className="greeting">
-                Good Afternoon, {user.username}
+                {getGreeting()}, {user.firstName || user.username}
             </div>
             
             <div className="search-container">
@@ -169,6 +171,7 @@ function App() {
                     <input className="modern-input" placeholder="Description" value={bio} onChange={e => setBio(e.target.value)} required />
                     <input className="modern-input" placeholder="Image URL / ID" value={imageUniqueId} onChange={e => setImageUniqueId(e.target.value)} />
                     <button type="submit" className="save-action-btn">{editingId ? "Update" : "Save"}</button>
+                    <button type="button" onClick={resetForm} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'10px 20px', borderRadius:'50px', cursor:'pointer', fontWeight:'bold', marginLeft: '10px'}}>Cancel</button>
                 </form>
             </div>
         )}
