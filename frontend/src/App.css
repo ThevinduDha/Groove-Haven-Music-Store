@@ -323,3 +323,195 @@ body {
 .delete-btn:hover { background: #ff4d4d; } 
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+/* --- 🎵 FINAL PERFECT LOGIN PAGE --- */
+
+/* 1. Backgrounds */
+.login-background, .admin-background {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+    transition: opacity 0.8s ease;
+}
+
+.login-background { background-image: url('/images/login-background.jpg'); }
+.admin-background { background-image: url('/images/admin-bg.jpg'); }
+
+.login-overlay-tint {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    /* Gradient to make text readable */
+    background: radial-gradient(circle at 85% 50%, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.85) 100%);
+    backdrop-filter: blur(5px);
+    z-index: 1;
+}
+
+/* 2. The Glass Card */
+.login-card {
+    position: relative;
+    z-index: 10;
+    width: 320px; 
+    /* Glass Effect */
+    background: rgba(20, 20, 20, 0.6); 
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    
+    padding: 40px 30px; 
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8);
+    text-align: center;
+    
+    /* Animation Entrance */
+    animation: cardEntrance 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* 3. Typography */
+.brand-title {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 5px;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #fff 30%, #1db954 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: fadeInUp 0.6s ease 0.2s forwards;
+    opacity: 0;
+}
+
+.brand-subtitle {
+    color: #a0a0a0;
+    font-size: 0.9rem;
+    margin-bottom: 30px;
+    font-weight: 500;
+    animation: fadeInUp 0.6s ease 0.3s forwards;
+    opacity: 0;
+}
+
+/* 4. Inputs */
+.input-group { 
+    margin-bottom: 15px; 
+    animation: fadeInUp 0.6s ease 0.4s forwards;
+    opacity: 0;
+}
+
+.login-input {
+    width: 100%;
+    padding: 14px 18px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.login-input:focus {
+    outline: none;
+    background: rgba(0, 0, 0, 0.7);
+    border-color: #1db954;
+    box-shadow: 0 0 20px rgba(29, 185, 84, 0.2);
+    transform: scale(1.02);
+}
+
+/* 5. THE BUTTON (Perfect Animation) */
+.login-btn {
+    width: 100%;
+    padding: 15px;
+    
+    /* DEFAULT STATE: Blurry Glass + Green Text */
+    background: rgba(255, 255, 255, 0.05); 
+    border: 1px solid rgba(29, 185, 84, 0.4);
+    color: #1db954; 
+    
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    
+    border-radius: 50px;
+    cursor: pointer;
+    margin-top: 15px;
+    
+    /* Smooth Transition */
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    
+    animation: fadeInUp 0.6s ease 0.5s forwards;
+    opacity: 0;
+}
+
+/* HOVER STATE: Solid Green + White Text + Glow */
+.login-btn:hover { 
+    transform: translateY(-4px) scale(1.03); 
+    background: #1db954;       
+    color: #ffffff;            
+    border-color: #1db954;
+    box-shadow: 0 15px 35px rgba(29, 185, 84, 0.4); 
+}
+
+.login-btn:active { transform: translateY(-1px) scale(0.98); }
+
+/* 6. Footer */
+.social-section {
+    margin-top: 25px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    animation: fadeInUp 0.6s ease 0.6s forwards;
+    opacity: 0;
+}
+
+.social-icon {
+    width: 20px;
+    height: 20px;
+    fill: #888;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+}
+
+.social-icon:hover { 
+    fill: white; 
+    transform: translateY(-5px) scale(1.2); 
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.5));
+}
+
+.switch-text { 
+    margin-top: 20px; 
+    font-size: 0.8rem; 
+    color: #888;
+    animation: fadeInUp 0.6s ease 0.7s forwards;
+    opacity: 0;
+}
+
+.admin-toggle {
+    margin-top: 20px;
+    font-size: 0.75rem;
+    color: #666;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    display: inline-block;
+    transition: all 0.3s;
+}
+
+.admin-toggle:hover { 
+    color: #fff; 
+    letter-spacing: 2px; /* Spreads out on hover */
+}
+
+/* Keyframes */
+@keyframes cardEntrance {
+    from { opacity: 0; transform: translateX(60px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}

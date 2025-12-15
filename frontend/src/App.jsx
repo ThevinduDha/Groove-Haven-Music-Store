@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css' 
+import Login from './Login' // Import the new Login Component
 
 // --- ICONS (SVG) ---
 const HomeIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
@@ -10,21 +11,28 @@ const HeartIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="currentC
 const PlayIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="black"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
 const PencilIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
 const TrashIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+// Verified Blue Tick Icon
+const VerifiedIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="#3d91f4"><path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.7L1 12l2.44 2.79-.34 3.7 3.61.82L8.6 22.5l3.4-1.47 3.4 1.46 1.89-3.19 3.61-.82-.34-3.69L23 12zm-12.91 4.72l-3.8-3.81 1.48-1.48 2.32 2.33 5.85-5.87 1.48 1.48-7.33 7.35z"></path></svg>
+
 
 function App() {
+  // --- AUTH STATE ---
+  const [user, setUser] = useState(null) // If null, user is not logged in
+
   const [artists, setArtists] = useState([])
   const [showForm, setShowForm] = useState(false) 
   
-  // New States for Search and Edit
   const [searchTerm, setSearchTerm] = useState("") 
-  const [editingId, setEditingId] = useState(null) // Keeps track of which artist we are editing
+  const [editingId, setEditingId] = useState(null) 
 
-  // Form State
   const [name, setName] = useState("")
   const [bio, setBio] = useState("")
   const [imageUniqueId, setImageUniqueId] = useState("")
 
-  useEffect(() => { fetchArtists() }, [])
+  // Only fetch data if user is logged in
+  useEffect(() => { 
+      if(user) fetchArtists() 
+  }, [user])
 
   const fetchArtists = () => {
     fetch('http://localhost:8080/artists')
@@ -32,43 +40,29 @@ function App() {
       .then(data => setArtists(data))
   }
 
-  // Handle Create OR Update
   const handleSubmit = (e) => {
     e.preventDefault()
     const artistData = { name, bio, imageUniqueId }
 
     if (editingId) {
-        // UPDATE MODE (PUT)
         fetch(`http://localhost:8080/artists/${editingId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(artistData)
-        }).then(() => {
-            resetForm();
-            fetchArtists();
-        })
+        }).then(() => { resetForm(); fetchArtists(); })
     } else {
-        // CREATE MODE (POST)
         fetch('http://localhost:8080/artists', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(artistData)
-        }).then(() => {
-            resetForm();
-            fetchArtists();
-        })
+        }).then(() => { resetForm(); fetchArtists(); })
     }
   }
 
-  // Pre-fill form for editing
   const handleEditClick = (e, artist) => {
     e.stopPropagation();
-    setName(artist.name);
-    setBio(artist.bio);
-    setImageUniqueId(artist.imageUniqueId);
-    setEditingId(artist.id);
-    setShowForm(true); // Open the form
-    // Scroll to top to see form
+    setName(artist.name); setBio(artist.bio); setImageUniqueId(artist.imageUniqueId);
+    setEditingId(artist.id); setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -85,11 +79,16 @@ function App() {
     setEditingId(null); setShowForm(false);
   }
 
-  // Search Logic
   const filteredArtists = artists.filter(artist => 
     artist.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  // --- 🔒 IF NOT LOGGED IN, SHOW LOGIN SCREEN ---
+  if (!user) {
+      return <Login onLogin={(loggedInUser) => setUser(loggedInUser)} />
+  }
+
+  // --- 🔓 IF LOGGED IN, SHOW DASHBOARD ---
   return (
     <div className="app-layout">
       
@@ -108,30 +107,43 @@ function App() {
             <div className="nav-item"><LibraryIcon /> <span>Your Library</span></div>
         </div>
         <div className="divider"></div>
-        <div className="nav-section">
-            <div className="nav-item" onClick={() => { resetForm(); setShowForm(true); }}>
-                <div style={{background:'white', padding:'4px', borderRadius:'2px', display:'flex', color:'black'}}><PlusIcon /></div>
-                <span>Create Artist</span>
+        
+        {/* Only Artists and Admins can see "Create Artist" */}
+        {(user.role === 'ADMIN' || user.role === 'ARTIST') && (
+            <div className="nav-section">
+                <div className="nav-item" onClick={() => { resetForm(); setShowForm(true); }}>
+                    <div style={{background:'white', padding:'4px', borderRadius:'2px', display:'flex', color:'black'}}><PlusIcon /></div>
+                    <span>Create Artist</span>
+                </div>
             </div>
-            <div className="nav-item">
-                <div style={{background:'linear-gradient(135deg, #450af5, #c4efd9)', padding:'4px', borderRadius:'2px', display:'flex', color:'white'}}><HeartIcon /></div>
-                <span>Liked Songs</span>
-            </div>
+        )}
+
+        <div className="nav-item">
+             <div style={{background:'linear-gradient(135deg, #450af5, #c4efd9)', padding:'4px', borderRadius:'2px', display:'flex', color:'white'}}><HeartIcon /></div>
+             <span>Liked Songs</span>
         </div>
-        <div style={{marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', borderRadius: '8px', cursor: 'pointer', background:'rgba(255,255,255,0.05)'}}>
-            <img src="https://ui-avatars.com/api/?name=User&background=random" style={{width:'32px', borderRadius:'50%'}} alt="User" />
-            <div style={{fontSize: '0.9rem', fontWeight: '700'}}>My Account</div>
+
+        {/* User Profile Section */}
+        <div onClick={() => setUser(null)} style={{marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', borderRadius: '8px', cursor: 'pointer', background:'rgba(255,255,255,0.05)'}}>
+            <img src={`https://ui-avatars.com/api/?name=${user.username}&background=random`} style={{width:'32px', borderRadius:'50%'}} alt="User" />
+            <div>
+                <div style={{fontSize: '0.9rem', fontWeight: '700', display:'flex', alignItems:'center', gap:'5px'}}>
+                    {user.username}
+                    {user.verified && <VerifiedIcon />} {/* Blue Tick! */}
+                </div>
+                <div style={{fontSize: '0.75rem', color:'#b3b3b3', textTransform:'capitalize'}}>{user.role.toLowerCase()}</div>
+            </div>
         </div>
       </div>
 
       {/* MAIN CONTENT */}
       <div className="main-content">
         
-        {/* HEADER With SEARCH */}
         <div className="header-bar">
-            <div className="greeting">Good Afternoon</div>
+            <div className="greeting">
+                Good Afternoon, {user.username}
+            </div>
             
-            {/* NEW: Search Bar */}
             <div className="search-container">
                 <div className="search-icon-overlay"><SearchIcon /></div>
                 <input 
@@ -142,12 +154,13 @@ function App() {
                 />
             </div>
 
-            <button className="add-btn-pill" onClick={() => { resetForm(); setShowForm(!showForm); }}>
-                {showForm ? "Cancel" : "Add Artist"}
-            </button>
+            {(user.role === 'ADMIN' || user.role === 'ARTIST') && (
+                <button className="add-btn-pill" onClick={() => { resetForm(); setShowForm(!showForm); }}>
+                    {showForm ? "Cancel" : "Add Artist"}
+                </button>
+            )}
         </div>
 
-        {/* FORM (Dynamic Title) */}
         {showForm && (
             <div className="creation-overlay">
                 <h3 style={{margin:'0 0 15px 0'}}>{editingId ? "Edit Artist Details" : "Add New Artist"}</h3>
@@ -160,14 +173,9 @@ function App() {
             </div>
         )}
 
-        {/* ARTIST GRID (Filtered) */}
         <h2 style={{fontSize: '1.5rem', marginBottom: '20px'}}>Your Artists</h2>
         
         <div className="artist-grid">
-            {filteredArtists.length === 0 && (
-                <p style={{color: '#b3b3b3'}}>No artists found. Try searching for something else!</p>
-            )}
-
             {filteredArtists.map(artist => (
                 <div key={artist.id} className="artist-card">
                     <div className="image-box">
@@ -183,15 +191,17 @@ function App() {
                     <h3 className="card-title">{artist.name}</h3>
                     <p className="card-desc">{artist.bio}</p>
 
-                    {/* NEW: Action Buttons (Edit + Delete) */}
-                    <div className="card-actions">
-                        <button className="icon-btn edit-btn" onClick={(e) => handleEditClick(e, artist)} title="Edit">
-                            <PencilIcon />
-                        </button>
-                        <button className="icon-btn delete-btn" onClick={(e) => handleDeleteArtist(e, artist.id)} title="Delete">
-                            <TrashIcon />
-                        </button>
-                    </div>
+                    {/* ONLY ADMINS CAN DELETE/EDIT */}
+                    {user.role === 'ADMIN' && (
+                        <div className="card-actions">
+                            <button className="icon-btn edit-btn" onClick={(e) => handleEditClick(e, artist)} title="Edit">
+                                <PencilIcon />
+                            </button>
+                            <button className="icon-btn delete-btn" onClick={(e) => handleDeleteArtist(e, artist.id)} title="Delete">
+                                <TrashIcon />
+                            </button>
+                        </div>
+                    )}
                 </div>
             ))}
         </div>
