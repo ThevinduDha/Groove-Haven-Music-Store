@@ -1,213 +1,283 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css' 
 import Login from './Login'
 
-// --- ICONS (SVG) ---
-const HomeIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-const SearchIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-const LibraryIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-const PlusIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-const HeartIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+// --- ICONS ---
+const HomeIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+const UserIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+const StarIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="gold" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
 const PlayIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="black"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-const PencilIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-const TrashIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-const VerifiedIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="#3d91f4"><path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.7L1 12l2.44 2.79-.34 3.7 3.61.82L8.6 22.5l3.4-1.47 3.4 1.46 1.89-3.19 3.61-.82-.34-3.69L23 12zm-12.91 4.72l-3.8-3.81 1.48-1.48 2.32 2.33 5.85-5.87 1.48 1.48-7.33 7.35z"></path></svg>
+const PauseIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="black"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+const UploadIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+const BackIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
 
 function App() {
   const [user, setUser] = useState(null)
-  const [artists, setArtists] = useState([])
-  const [showForm, setShowForm] = useState(false) 
-  const [searchTerm, setSearchTerm] = useState("") 
-  const [editingId, setEditingId] = useState(null) 
-  const [name, setName] = useState("")
-  const [bio, setBio] = useState("")
-  const [imageUniqueId, setImageUniqueId] = useState("")
+  
+  // --- NAVIGATION STATE ---
+  const [view, setView] = useState('home') // 'home', 'profile', 'artist'
+  const [viewedArtist, setViewedArtist] = useState(null) // The artist we are clicking on
 
-  // --- NEW: Dynamic Greeting Logic ---
-  const getGreeting = () => {
-      const hour = new Date().getHours();
-      if (hour < 12) return "Good Morning";
-      if (hour < 18) return "Good Afternoon";
-      return "Good Evening";
-  }
+  // --- DATA ---
+  const [artists, setArtists] = useState([]) 
+  const [songs, setSongs] = useState([])
 
-  // Only fetch data if user is logged in
+  // --- FORMS ---
+  const [showUpload, setShowUpload] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  
+  // Upgrade Form Data
+  const [upgradeBio, setUpgradeBio] = useState("")
+  const [upgradePic, setUpgradePic] = useState(null)
+
+  // Profile Edit Data
+  const [editName, setEditName] = useState("")
+  const [editPic, setEditPic] = useState(null)
+
+  // Player
+  const [currentSong, setCurrentSong] = useState(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const audioRef = useRef(null)
+
+  // Init Data
   useEffect(() => { 
-      if(user) fetchArtists() 
+      if(user) {
+          fetchArtists();
+          fetchSongs();
+          setEditName(user.firstName || "");
+      }
   }, [user])
 
+  // --- API CALLS ---
   const fetchArtists = () => {
-    fetch('http://localhost:8080/artists')
+    // We now fetch USERS who are ARTISTS
+    fetch('http://localhost:8080/users/artists')
       .then(res => res.json())
       .then(data => setArtists(data))
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const artistData = { name, bio, imageUniqueId }
+  const fetchSongs = () => {
+    fetch('http://localhost:8080/songs')
+      .then(res => res.json())
+      .then(data => setSongs(data))
+  }
 
-    if (editingId) {
-        fetch(`http://localhost:8080/artists/${editingId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(artistData)
-        }).then(() => { resetForm(); fetchArtists(); })
+  // --- AUDIO PLAYER ---
+  useEffect(() => {
+    if (currentSong && audioRef.current) {
+        isPlaying ? audioRef.current.play().catch(e=>{}) : audioRef.current.pause();
+    }
+  }, [currentSong, isPlaying])
+
+  const playSong = (song) => {
+    if (currentSong && currentSong.id === song.id) {
+        setIsPlaying(!isPlaying);
     } else {
-        fetch('http://localhost:8080/artists', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(artistData)
-        }).then(() => { resetForm(); fetchArtists(); })
+        setCurrentSong(song);
+        setIsPlaying(true);
     }
   }
 
-  const handleEditClick = (e, artist) => {
-    e.stopPropagation();
-    setName(artist.name); setBio(artist.bio); setImageUniqueId(artist.imageUniqueId);
-    setEditingId(artist.id); setShowForm(true);
+  // --- 1. PROFILE UPDATE ---
+  const handleProfileUpdate = (e) => {
+      e.preventDefault();
+      // Update Name
+      fetch(`http://localhost:8080/users/${user.id}`, {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ firstName: editName })
+      }).then(res => res.json()).then(updatedUser => {
+          // If there is an image, upload it
+          if(editPic) {
+             const formData = new FormData(); formData.append("file", editPic);
+             fetch(`http://localhost:8080/users/${user.id}/image`, {method:'POST', body:formData})
+             .then(res => res.json()).then(finalUser => {
+                 setUser(finalUser); alert("Profile Updated!");
+             })
+          } else {
+              setUser(updatedUser); alert("Profile Updated!");
+          }
+      })
   }
 
-  const handleDeleteArtist = (e, id) => {
-    e.stopPropagation(); 
-    if(window.confirm("Remove this artist permanently?")) {
-      fetch(`http://localhost:8080/artists/${id}`, { method: 'DELETE' })
-      .then(() => fetchArtists())
-    }
+  // --- 2. UPGRADE TO ARTIST ---
+  const handleUpgrade = (e) => {
+      e.preventDefault();
+      if(!upgradePic) return alert("Artists need a profile picture!");
+      
+      const confirmPayment = window.confirm("💎 Pay $9.99 to become an Artist?");
+      if(confirmPayment) {
+          // 1. Update Role and Bio
+          fetch(`http://localhost:8080/users/${user.id}`, {
+              method: 'PUT',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ role: 'ARTIST', bio: upgradeBio })
+          }).then(res => res.json()).then(upgradedUser => {
+              // 2. Upload the Artist Image
+              const formData = new FormData(); formData.append("file", upgradePic);
+              fetch(`http://localhost:8080/users/${user.id}/image`, {method:'POST', body:formData})
+              .then(res => res.json()).then(finalUser => {
+                  setUser(finalUser); 
+                  setShowUpgradeModal(false);
+                  alert("🎉 Welcome to the Artist Club! You can now upload songs.");
+                  fetchArtists(); // Refresh list
+              })
+          })
+      }
   }
 
-  const resetForm = () => {
-    setName(""); setBio(""); setImageUniqueId(""); 
-    setEditingId(null); setShowForm(false);
+  // --- 3. SONG UPLOAD ---
+  const handleUpload = (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append("title", e.target.title.value);
+    formData.append("artist", user.firstName || user.username); // Use updated name
+    formData.append("file", e.target.file.files[0]);
+
+    fetch('http://localhost:8080/songs/upload', { method: 'POST', body: formData })
+    .then(() => {
+        alert("Song Uploaded!");
+        setShowUpload(false);
+        fetchSongs();
+    })
   }
 
-  const filteredArtists = artists.filter(artist => 
-    artist.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // --- VIEW HELPERS ---
+  const getImage = (u) => u.profilePic ? `http://localhost:8080/music/${u.profilePic}` : `https://ui-avatars.com/api/?name=${u.username}&background=random`;
 
-  // --- 🔒 IF NOT LOGGED IN, SHOW LOGIN SCREEN ---
-  if (!user) {
-      return <Login onLogin={(loggedInUser) => setUser(loggedInUser)} />
-  }
+  if (!user) return <Login onLogin={setUser} />
 
-  // --- 🔓 IF LOGGED IN, SHOW DASHBOARD ---
   return (
     <div className="app-layout" style={{height: '100vh', overflow: 'hidden'}}>
-      
+      {currentSong && <audio ref={audioRef} src={`http://localhost:8080/music/${currentSong.filePath}`} onEnded={()=>setIsPlaying(false)} />}
+
       {/* SIDEBAR */}
       <div className="sidebar">
-        <div className="logo">
-           <div style={{width:'32px', height:'32px', background:'white', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center'}}>
-              <div style={{width:'16px', height:'16px', background:'black', borderRadius:'50%'}}></div>
-           </div>
-           GrooveHaven
-        </div>
-        
+        <div className="logo">GrooveHaven</div>
         <div className="nav-section">
-            <div className="nav-item active"><HomeIcon /> <span>Home</span></div>
-            <div className="nav-item"><SearchIcon /> <span>Search</span></div>
-            <div className="nav-item"><LibraryIcon /> <span>Your Library</span></div>
+            <div className={`nav-item ${view === 'home' ? 'active' : ''}`} onClick={() => {setView('home'); setViewedArtist(null)}}><HomeIcon /> <span>Home</span></div>
+            <div className={`nav-item ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}><UserIcon /> <span>My Profile</span></div>
         </div>
-        <div className="divider"></div>
-        
-        {/* Only Artists and Admins can see "Create Artist" */}
-        {(user.role === 'ADMIN' || user.role === 'ARTIST') && (
-            <div className="nav-section">
-                <div className="nav-item" onClick={() => { resetForm(); setShowForm(true); }}>
-                    <div style={{background:'white', padding:'4px', borderRadius:'2px', display:'flex', color:'black'}}><PlusIcon /></div>
-                    <span>Create Artist</span>
+
+        {user.role === 'LISTENER' && (
+             <div className="nav-section">
+                <div className="nav-item" onClick={() => setShowUpgradeModal(true)} style={{color: '#ffd700'}}>
+                    <StarIcon /> <span>Become an Artist</span>
                 </div>
             </div>
         )}
 
-        <div className="nav-item">
-             <div style={{background:'linear-gradient(135deg, #450af5, #c4efd9)', padding:'4px', borderRadius:'2px', display:'flex', color:'white'}}><HeartIcon /></div>
-             <span>Liked Songs</span>
-        </div>
-
-        {/* User Profile Section */}
-        <div onClick={() => setUser(null)} style={{marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', borderRadius: '8px', cursor: 'pointer', background:'rgba(255,255,255,0.05)'}}>
-            <img src={`https://ui-avatars.com/api/?name=${user.firstName || user.username}&background=random`} style={{width:'32px', borderRadius:'50%'}} alt="User" />
-            <div>
-                <div style={{fontSize: '0.9rem', fontWeight: '700', display:'flex', alignItems:'center', gap:'5px'}}>
-                    {user.firstName || user.username}
-                    {user.verified && <VerifiedIcon />} {/* Blue Tick! */}
-                </div>
-                <div style={{fontSize: '0.75rem', color:'#b3b3b3', textTransform:'capitalize'}}>{user.role.toLowerCase()}</div>
+        {(user.role === 'ADMIN' || user.role === 'ARTIST') && (
+            <div className="nav-section">
+                <div className="nav-item" onClick={() => setShowUpload(true)}><UploadIcon /> <span>Upload Song</span></div>
             </div>
-        </div>
+        )}
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="main-content" style={{overflowY: 'auto'}}>
+      <div className="main-content" style={{overflowY: 'auto', paddingBottom:'100px'}}>
         
+        {/* === HEADER === */}
         <div className="header-bar">
-            {/* 👇 DYNAMIC GREETING WITH NAME */}
+            {view === 'artist' && <div onClick={() => setView('home')} style={{cursor:'pointer', marginRight:'20px'}}><BackIcon /></div>}
             <div className="greeting">
-                {getGreeting()}, {user.firstName || user.username}
+                {view === 'profile' ? "Edit Profile" : (view === 'artist' ? viewedArtist.firstName : `Hello, ${user.firstName || user.username}`)}
             </div>
-            
-            <div className="search-container">
-                <div className="search-icon-overlay"><SearchIcon /></div>
-                <input 
-                    className="search-input" 
-                    placeholder="What do you want to play?" 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
-
-            {(user.role === 'ADMIN' || user.role === 'ARTIST') && (
-                <button className="add-btn-pill" onClick={() => { resetForm(); setShowForm(!showForm); }}>
-                    {showForm ? "Cancel" : "Add Artist"}
-                </button>
-            )}
         </div>
 
-        {showForm && (
-            <div className="creation-overlay">
-                <h3 style={{margin:'0 0 15px 0'}}>{editingId ? "Edit Artist Details" : "Add New Artist"}</h3>
-                <form onSubmit={handleSubmit} className="form-row">
-                    <input className="modern-input" placeholder="Name" value={name} onChange={e => setName(e.target.value)} required />
-                    <input className="modern-input" placeholder="Description" value={bio} onChange={e => setBio(e.target.value)} required />
-                    <input className="modern-input" placeholder="Image URL / ID" value={imageUniqueId} onChange={e => setImageUniqueId(e.target.value)} />
-                    <button type="submit" className="save-action-btn">{editingId ? "Update" : "Save"}</button>
-                    <button type="button" onClick={resetForm} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'10px 20px', borderRadius:'50px', cursor:'pointer', fontWeight:'bold', marginLeft: '10px'}}>Cancel</button>
+        {/* === VIEW: HOME (List Artists) === */}
+        {view === 'home' && (
+            <>
+                <h2 style={{fontSize: '1.5rem', marginBottom: '20px'}}>Popular Artists</h2>
+                <div className="artist-grid">
+                    {artists.map(artist => (
+                        <div key={artist.id} className="artist-card" onClick={() => { setViewedArtist(artist); setView('artist'); }}>
+                            <div className="image-box">
+                                <img src={getImage(artist)} className="artist-img" style={{objectFit:'cover'}} />
+                            </div>
+                            <h3 className="card-title">{artist.firstName || artist.username}</h3>
+                            <p className="card-desc">Artist</p>
+                        </div>
+                    ))}
+                </div>
+            </>
+        )}
+
+        {/* === VIEW: ARTIST DETAIL (Show Songs) === */}
+        {view === 'artist' && viewedArtist && (
+            <>
+                <div style={{display:'flex', alignItems:'center', gap:'20px', marginBottom:'40px'}}>
+                    <img src={getImage(viewedArtist)} style={{width:'150px', height:'150px', borderRadius:'50%', objectFit:'cover', boxShadow:'0 10px 30px rgba(0,0,0,0.5)'}} />
+                    <div>
+                        <h1 style={{fontSize:'3rem', margin:0}}>{viewedArtist.firstName || viewedArtist.username}</h1>
+                        <p style={{color:'#ccc', fontSize:'1.1rem'}}>{viewedArtist.bio || "No bio yet."}</p>
+                    </div>
+                </div>
+
+                <h3>Songs</h3>
+                <div className="artist-grid">
+                    {songs.filter(s => s.artist === (viewedArtist.firstName || viewedArtist.username)).map(song => (
+                        <div key={song.id} className="artist-card" onClick={() => playSong(song)}>
+                            <div className="image-box">
+                                <img src={`https://ui-avatars.com/api/?name=${song.title}&background=1db954&color=fff`} className="artist-img" />
+                                <div className="play-overlay" style={{opacity: (currentSong?.id === song.id && isPlaying) ? 1 : undefined, transform: (currentSong?.id === song.id && isPlaying) ? 'translateY(0)' : undefined}}>
+                                    {(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}
+                                </div>
+                            </div>
+                            <h3 className="card-title">{song.title}</h3>
+                        </div>
+                    ))}
+                    {songs.filter(s => s.artist === (viewedArtist.firstName || viewedArtist.username)).length === 0 && <p style={{color:'#666'}}>No songs uploaded yet.</p>}
+                </div>
+            </>
+        )}
+
+        {/* === VIEW: PROFILE (Edit User) === */}
+        {view === 'profile' && (
+            <div style={{maxWidth:'500px'}}>
+                <div style={{textAlign:'center', marginBottom:'30px'}}>
+                    <img src={getImage(user)} style={{width:'120px', height:'120px', borderRadius:'50%', objectFit:'cover', border:'3px solid #1db954'}} />
+                </div>
+                <form onSubmit={handleProfileUpdate} className="form-row" style={{flexDirection:'column'}}>
+                    <label>Display Name</label>
+                    <input className="modern-input" value={editName} onChange={e=>setEditName(e.target.value)} />
+                    <label>Profile Picture</label>
+                    <input type="file" onChange={e=>setEditPic(e.target.files[0])} style={{color:'white', padding:'10px 0'}} />
+                    <button type="submit" className="save-action-btn" style={{marginTop:'20px'}}>Save Changes</button>
                 </form>
             </div>
         )}
 
-        <h2 style={{fontSize: '1.5rem', marginBottom: '20px'}}>Your Artists</h2>
-        
-        <div className="artist-grid">
-            {filteredArtists.map(artist => (
-                <div key={artist.id} className="artist-card">
-                    <div className="image-box">
-                        <img 
-                            src={artist.imageUniqueId && artist.imageUniqueId.startsWith("http") ? artist.imageUniqueId : (artist.imageUniqueId ? `/images/${artist.imageUniqueId}.jpg` : "https://via.placeholder.com/150")}
-                            onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${artist.name}&background=333&color=fff&size=200`; }} 
-                            className="artist-img"
-                            alt={artist.name}
-                        />
-                        <div className="play-overlay"><PlayIcon /></div>
-                    </div>
+        {/* === MODALS === */}
 
-                    <h3 className="card-title">{artist.name}</h3>
-                    <p className="card-desc">{artist.bio}</p>
+        {/* 1. UPLOAD SONG MODAL */}
+        {showUpload && (
+            <div className="creation-overlay" style={{position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)', zIndex:100}}>
+                <h3>Upload New Track</h3>
+                <form onSubmit={handleUpload} className="form-row" style={{flexDirection:'column'}}>
+                    <input name="title" className="modern-input" placeholder="Song Title" required />
+                    <input name="file" type="file" accept=".mp3" required style={{color:'white', margin:'10px 0'}} />
+                    <button className="save-action-btn">Upload</button>
+                    <button type="button" onClick={()=>setShowUpload(false)} style={{background:'none', border:'none', color:'white', marginTop:'10px', cursor:'pointer'}}>Cancel</button>
+                </form>
+            </div>
+        )}
 
-                    {/* ONLY ADMINS CAN DELETE/EDIT */}
-                    {user.role === 'ADMIN' && (
-                        <div className="card-actions">
-                            <button className="icon-btn edit-btn" onClick={(e) => handleEditClick(e, artist)} title="Edit">
-                                <PencilIcon />
-                            </button>
-                            <button className="icon-btn delete-btn" onClick={(e) => handleDeleteArtist(e, artist.id)} title="Delete">
-                                <TrashIcon />
-                            </button>
-                        </div>
-                    )}
-                </div>
-            ))}
-        </div>
+        {/* 2. BECOME ARTIST MODAL */}
+        {showUpgradeModal && (
+            <div className="creation-overlay" style={{position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)', zIndex:100, width:'400px'}}>
+                <h2 style={{color:'#1db954'}}>Artist Application</h2>
+                <p>Complete your profile to start your journey.</p>
+                <form onSubmit={handleUpgrade} className="form-row" style={{flexDirection:'column'}}>
+                    <textarea className="modern-input" placeholder="Artist Bio / Description" value={upgradeBio} onChange={e=>setUpgradeBio(e.target.value)} required rows={4} />
+                    <p style={{fontSize:'0.9rem', marginBottom:'5px'}}>Artist Profile Image:</p>
+                    <input type="file" onChange={e=>setUpgradePic(e.target.files[0])} required style={{color:'white'}} />
+                    <button className="save-action-btn" style={{marginTop:'20px', background:'gold', color:'black'}}>Pay $9.99 & Join</button>
+                    <button type="button" onClick={()=>setShowUpgradeModal(false)} style={{background:'none', border:'none', color:'white', marginTop:'10px', cursor:'pointer'}}>Cancel</button>
+                </form>
+            </div>
+        )}
+
       </div>
     </div>
   )
