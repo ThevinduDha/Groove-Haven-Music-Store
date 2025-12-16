@@ -411,10 +411,26 @@ body {
 
 .switch-text { 
     margin-top: 20px; 
-    font-size: 0.8rem; 
-    color: #888;
+    font-size: 0.85rem; 
+    color: #b3b3b3;
     animation: fadeInUp 0.6s ease 0.7s forwards;
     opacity: 0;
+}
+
+/* 👇 NEW: BOLD POP-UP LINK (Sign Up / Log In) */
+.switch-link {
+    color: white;             /* Default White */
+    font-weight: 800;         /* Bold letters */
+    margin-left: 8px;
+    cursor: pointer;
+    display: inline-block;    /* Required for Scale Animation */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.switch-link:hover { 
+    color: #1db954;           /* Turns Green */
+    transform: scale(1.2);    /* POPS UP */
+    text-shadow: 0 0 15px rgba(29, 185, 84, 0.6);
 }
 
 .admin-toggle {

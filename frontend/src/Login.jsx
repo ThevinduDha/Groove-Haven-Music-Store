@@ -126,7 +126,7 @@ export default function Login({ onLogin }) {
                     <div className="switch-text">
                         {isSignup ? "Already a member?" : "New to GrooveHaven?"}
                         <span className="switch-link" onClick={() => { setIsSignup(!isSignup); setError(""); }}>
-                            {isSignup ? "Log In" : "Sign Up"}
+                            {isSignup ? " Log In" : " Sign Up"}
                         </span>
                     </div>
                 )}
