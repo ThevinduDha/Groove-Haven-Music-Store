@@ -4,42 +4,78 @@ import com.groovehaven.backend.entity.User;
 import com.groovehaven.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Optional;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/users")
-@CrossOrigin(origins = "http://localhost:5173") // Allow Frontend to talk to us
+@CrossOrigin(origins = "http://localhost:5173")
 public class UserController {
 
     @Autowired
     private UserRepository userRepository;
 
-    // 1. SIGNUP (Create Account)
+    // CHANGE THIS TO YOUR DESKTOP PATH (Same as SongController)
+    private static final String UPLOAD_DIR = "C:/Users/DELL/Desktop/groove-haven/GrooveHaven_Music/";
+
     @PostMapping("/signup")
-    public String signup(@RequestBody User newUser) {
-        // Check if username already exists
-        if (userRepository.findByUsername(newUser.getUsername()).isPresent()) {
-            return "Username already taken!";
-        }
-
-        // Default everyone to LISTENER (Safety first!)
-        newUser.setRole("LISTENER");
-        newUser.setVerified(false);
-
-        userRepository.save(newUser);
-        return "User registered successfully!";
+    public User signup(@RequestBody User user) {
+        user.setRole("LISTENER");
+        return userRepository.save(user);
     }
 
-    // 2. LOGIN (Check Account)
     @PostMapping("/login")
-    public User login(@RequestBody User loginData) {
-        Optional<User> user = userRepository.findByUsername(loginData.getUsername());
+    public User login(@RequestBody User loginDetails) {
+        // 👇 FIX: We added .orElse(null) to unwrap the Optional box
+        User user = userRepository.findByUsername(loginDetails.getUsername())
+                .orElse(null);
 
-        // If user exists AND password matches (Simple check)
-        if (user.isPresent() && user.get().getPassword().equals(loginData.getPassword())) {
-            return user.get(); // Send back the user info (Role, ID, Verified status)
+        if (user != null && user.getPassword().equals(loginDetails.getPassword())) {
+            return user;
         }
-        return null; // Login failed
+        throw new RuntimeException("Invalid Credentials");
+    }
+
+    // 1. Get All Artists
+    @GetMapping("/artists")
+    public List<User> getAllArtists() {
+        return userRepository.findAll().stream()
+                .filter(u -> "ARTIST".equals(u.getRole()))
+                .collect(Collectors.toList());
+    }
+
+    // 2. Update Profile / Upgrade to Artist
+    @PutMapping("/{id}")
+    public User updateUser(@PathVariable Long id, @RequestBody User updatedData) {
+        return userRepository.findById(id).map(user -> {
+            if(updatedData.getFirstName() != null) user.setFirstName(updatedData.getFirstName());
+            if(updatedData.getLastName() != null) user.setLastName(updatedData.getLastName());
+            if(updatedData.getBio() != null) user.setBio(updatedData.getBio());
+            if(updatedData.getRole() != null) user.setRole(updatedData.getRole());
+            return userRepository.save(user);
+        }).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    // 3. Upload Profile Picture
+    @PostMapping("/{id}/image")
+    public User uploadProfilePic(@PathVariable Long id, @RequestParam("file") MultipartFile file) throws IOException {
+        File directory = new File(UPLOAD_DIR);
+        if (!directory.exists()) directory.mkdirs();
+
+        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+        Path filePath = Paths.get(UPLOAD_DIR + fileName);
+        Files.write(filePath, file.getBytes());
+
+        return userRepository.findById(id).map(user -> {
+            user.setProfilePic(fileName);
+            return userRepository.save(user);
+        }).orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

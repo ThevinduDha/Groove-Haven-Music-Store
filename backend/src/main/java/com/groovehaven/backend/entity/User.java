@@ -25,6 +25,9 @@ public class User {
     private String firstName;
     private String lastName;
     private LocalDate birthday;
+    private String profilePic; // Filename of the image
+    @Column(length = 1000)     // Allow longer text
+    private String bio;
     // ------------------
 
     // --- GETTERS AND SETTERS ---
@@ -52,4 +55,10 @@ public class User {
 
     public LocalDate getBirthday() { return birthday; }
     public void setBirthday(LocalDate birthday) { this.birthday = birthday; }
+
+    public String getProfilePic() { return profilePic; }
+    public void setProfilePic(String profilePic) { this.profilePic = profilePic; }
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
 }
