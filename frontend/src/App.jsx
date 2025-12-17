@@ -13,6 +13,7 @@ const BackIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" str
 const CameraIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
 const MusicFileIcon = () => <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1db954" strokeWidth="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
 const LogoutIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+const ImageIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
 
 function App() {
   const [user, setUser] = useState(null)
@@ -50,7 +51,6 @@ function App() {
     else { setCurrentSong(song); setIsPlaying(true); }
   }
 
-  // Handle Profile Update with Auto-Redirect
   const handleProfileUpdate = (e) => {
       e.preventDefault();
       fetch(`http://localhost:8080/users/${user.id}`, {
@@ -84,17 +84,28 @@ function App() {
       }
   }
 
+  // 👇 UPDATED: Uploads both Audio + Cover Image
   const handleUpload = (e) => {
     e.preventDefault();
     const formData = new FormData();
     formData.append("title", e.target.title.value);
     formData.append("artist", user.firstName || user.username);
-    formData.append("file", e.target.file.files[0]);
+    formData.append("file", e.target.file.files[0]);   // The Audio
+    formData.append("cover", e.target.cover.files[0]); // The Picture
+
     fetch('http://localhost:8080/songs/upload', { method: 'POST', body: formData })
-    .then(() => { alert("🎵 Song Uploaded!"); setShowUpload(false); fetchSongs(); })
+    .then(() => { 
+        alert("🎵 Song & Cover Uploaded!"); 
+        setShowUpload(false); 
+        fetchSongs(); 
+    })
+    .catch(() => alert("❌ Upload Failed (Check file sizes!)"));
   }
 
   const getImage = (u) => u.profilePic ? `http://localhost:8080/music/${u.profilePic}?t=${new Date().getTime()}` : `https://ui-avatars.com/api/?name=${u.username}&background=random`;
+  
+  // Helper to get Song Cover
+  const getSongCover = (s) => s.coverImage ? `http://localhost:8080/music/${s.coverImage}` : `https://ui-avatars.com/api/?name=${s.title}&background=1db954&color=fff&size=200`;
 
   if (!user) return <Login onLogin={setUser} />
 
@@ -104,22 +115,18 @@ function App() {
     <div className="app-layout" style={{height: '100vh', overflow: 'hidden'}}>
       {currentSong && <audio ref={audioRef} src={`http://localhost:8080/music/${currentSong.filePath}`} onEnded={()=>setIsPlaying(false)} />}
 
-      {/* --- SIDEBAR --- */}
       <div className="sidebar">
         <div className="logo">GrooveHaven</div>
         <div className="nav-section">
             <div className={`nav-item ${view === 'home' ? 'active' : ''}`} onClick={() => {setView('home'); setViewedArtist(null)}}><HomeIcon /> <span>{user.role === 'ARTIST' ? "Dashboard" : "Home"}</span></div>
             <div className={`nav-item ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}><UserIcon /> <span>My Profile</span></div>
         </div>
-        
         {user.role === 'LISTENER' && <div className="nav-section"><div className="nav-item" onClick={() => setShowUpgradeModal(true)} style={{color: '#ffd700'}}><StarIcon /> <span>Become an Artist</span></div></div>}
-        
         <div style={{padding:'0 24px', marginTop:'auto', marginBottom:'20px'}}>
              <div className="logout-btn-sidebar" onClick={() => setUser(null)}><LogoutIcon /> <span>Log Out</span></div>
         </div>
       </div>
 
-      {/* --- MAIN CONTENT --- */}
       <div className="main-content" style={{overflowY: 'auto', paddingBottom:'100px'}}>
         
         <div className="header-bar">
@@ -132,16 +139,14 @@ function App() {
             )}
         </div>
 
-        {/* === VIEW: ARTIST DASHBOARD (HOME) === */}
+        {/* ARTIST DASHBOARD */}
         {(view === 'home' && user.role === 'ARTIST') && (
             <>
-                {/* 1. Artist Hero */}
                 <div className="dashboard-hero">
                     <h1>Artist Command Center</h1>
                     <p>Manage your music, check your stats, and grow your audience.</p>
                 </div>
 
-                {/* 2. Stats Row */}
                 <div className="stats-container">
                     <div className="stat-card">
                         <span className="stat-number">{mySongs.length}</span>
@@ -157,7 +162,6 @@ function App() {
                     </div>
                 </div>
 
-                {/* 3. NEW: Visual Chart Simulation */}
                 <div style={{marginBottom:'40px', background:'rgba(255,255,255,0.02)', padding:'20px', borderRadius:'16px', border:'1px solid rgba(255,255,255,0.05)'}}>
                     <h4 style={{marginTop:0, color:'#b3b3b3'}}>Weekly Listener Growth</h4>
                     <div style={{display:'flex', alignItems:'flex-end', gap:'10px', height:'100px', paddingBottom:'10px'}}>
@@ -174,12 +178,16 @@ function App() {
                 <div className="track-list-container">
                     {mySongs.length > 0 ? mySongs.map(song => (
                         <div key={song.id} className="track-row" onClick={() => playSong(song)}>
-                            <img src={`https://ui-avatars.com/api/?name=${song.title}&background=1db954&color=fff`} className="track-img-small" />
+                            {/* 👇 Shows Real Cover Art in List */}
+                            <img src={getSongCover(song)} className="track-img-small" />
                             <div className="track-info">
                                 <div className="track-title">{song.title}</div>
                                 <div className="track-meta">Added recently</div>
                             </div>
-                            <div className="track-actions"><PlayIcon /></div>
+                            <div className="track-actions">
+                                {/* 👇 Shows Pause if playing, Play if not */}
+                                {(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}
+                            </div>
                         </div>
                     )) : (
                         <div style={{textAlign:'center', padding:'30px', color:'#888'}}>
@@ -191,17 +199,20 @@ function App() {
             </>
         )}
 
-        {/* === VIEW: LISTENER HOME (HOME) === */}
+        {/* LISTENER HOME */}
         {(view === 'home' && user.role !== 'ARTIST') && (
             <>
-                {/* 1. NEW: Fresh Drops (Latest Songs) Row */}
                 <h2 style={{fontSize: '1.5rem', marginBottom: '15px'}}>Fresh Drops 🎵</h2>
                 <div style={{display:'flex', gap:'20px', overflowX:'auto', paddingBottom:'20px', marginBottom:'30px'}}>
                     {songs.slice(0, 6).map(song => (
                         <div key={song.id} className="artist-card" style={{minWidth:'160px'}} onClick={() => playSong(song)}>
                             <div className="image-box">
-                                <img src={`https://ui-avatars.com/api/?name=${song.title}&background=1db954&color=fff&size=200`} className="artist-img" />
-                                <div className="play-overlay"><PlayIcon /></div>
+                                {/* 👇 Shows Real Cover Art */}
+                                <img src={getSongCover(song)} className="artist-img" />
+                                <div className="play-overlay" style={{opacity: (currentSong?.id === song.id && isPlaying) ? 1 : undefined, transform: (currentSong?.id === song.id && isPlaying) ? 'translateY(0)' : undefined}}>
+                                    {/* 👇 Shows Pause/Play Logic */}
+                                    {(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}
+                                </div>
                             </div>
                             <h3 className="card-title" style={{fontSize:'0.9rem'}}>{song.title}</h3>
                             <p className="card-desc" style={{fontSize:'0.8rem'}}>{song.artist}</p>
@@ -210,7 +221,6 @@ function App() {
                     {songs.length === 0 && <p style={{color:'#666'}}>No songs uploaded yet. Be the first!</p>}
                 </div>
 
-                {/* 2. Popular Artists Grid */}
                 <h2 style={{fontSize: '1.5rem', marginBottom: '20px'}}>Popular Artists</h2>
                 <div className="artist-grid">
                     {artists.map(artist => (
@@ -224,7 +234,7 @@ function App() {
             </>
         )}
 
-        {/* === VIEW: ARTIST DETAIL === */}
+        {/* ARTIST DETAIL */}
         {view === 'artist' && viewedArtist && (
             <>
                 <div style={{display:'flex', alignItems:'center', gap:'20px', marginBottom:'40px'}}>
@@ -236,7 +246,8 @@ function App() {
                     {songs.filter(s => s.artist === (viewedArtist.firstName || viewedArtist.username)).map(song => (
                         <div key={song.id} className="artist-card" onClick={() => playSong(song)}>
                             <div className="image-box">
-                                <img src={`https://ui-avatars.com/api/?name=${song.title}&background=1db954&color=fff`} className="artist-img" />
+                                {/* 👇 Shows Real Cover Art */}
+                                <img src={getSongCover(song)} className="artist-img" />
                                 <div className="play-overlay" style={{opacity: (currentSong?.id === song.id && isPlaying) ? 1 : undefined, transform: (currentSong?.id === song.id && isPlaying) ? 'translateY(0)' : undefined}}>
                                     {(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}
                                 </div>
@@ -248,7 +259,7 @@ function App() {
             </>
         )}
 
-        {/* === VIEW: PROFILE EDITOR === */}
+        {/* PROFILE EDITOR */}
         {view === 'profile' && (
             <div className="profile-editor-container">
                 <form onSubmit={handleProfileUpdate}>
@@ -274,8 +285,25 @@ function App() {
                     <p style={{color:'#888', marginBottom:'25px', fontSize:'0.9rem'}}>Share your sound with the world.</p>
                     <form onSubmit={handleUpload}>
                         <div className="premium-input-group"><input name="title" className="premium-input" placeholder="Song Title" required /></div>
-                        <div className="premium-input-group"><label className="file-upload-zone"><MusicFileIcon /><span style={{fontWeight:'600'}}>Click to select MP3</span><input name="file" type="file" accept=".mp3" required style={{display:'none'}} /></label></div>
-                        <div style={{display:'flex', gap:'15px', marginTop:'30px'}}><button className="login-btn" style={{margin:0}}>🚀 Upload</button><button type="button" onClick={()=>setShowUpload(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'12px 25px', borderRadius:'50px', cursor:'pointer', fontWeight:'bold'}}>Cancel</button></div>
+                        
+                        {/* Audio File Input */}
+                        <div className="premium-input-group">
+                            <label className="file-upload-zone"><MusicFileIcon /><span style={{fontWeight:'600'}}>Click to select MP3</span><input name="file" type="file" accept=".mp3" required style={{display:'none'}} /></label>
+                        </div>
+
+                        {/* 👇 NEW: Cover Image Input */}
+                        <div className="premium-input-group">
+                            <label className="file-upload-zone" style={{borderColor: '#b3b3b3'}}>
+                                <ImageIcon />
+                                <span style={{fontWeight:'600'}}>Click to select Cover Art</span>
+                                <input name="cover" type="file" accept="image/*" required style={{display:'none'}} />
+                            </label>
+                        </div>
+
+                        <div style={{display:'flex', gap:'15px', marginTop:'30px'}}>
+                            <button className="login-btn" style={{margin:0}}>🚀 Upload</button>
+                            <button type="button" onClick={()=>setShowUpload(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'12px 25px', borderRadius:'50px', cursor:'pointer', fontWeight:'bold'}}>Cancel</button>
+                        </div>
                     </form>
                 </div>
             </div>
