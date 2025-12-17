@@ -50,48 +50,22 @@ function App() {
     else { setCurrentSong(song); setIsPlaying(true); }
   }
 
-  // 👇 UPDATED: Automatically goes to Dashboard (Home) after saving
+  // Handle Profile Update with Auto-Redirect
   const handleProfileUpdate = (e) => {
       e.preventDefault();
-      
-      // 1. Update Name First
       fetch(`http://localhost:8080/users/${user.id}`, {
-          method: 'PUT',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ firstName: editName })
-      })
-      .then(res => res.json())
-      .then(updatedUser => {
-          
-          // 2. Check if there is a picture to upload
+          method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ firstName: editName })
+      }).then(res => res.json()).then(updatedUser => {
           if(editPic) {
-             const formData = new FormData(); 
-             formData.append("file", editPic);
-             
+             const formData = new FormData(); formData.append("file", editPic);
              fetch(`http://localhost:8080/users/${user.id}/image`, {method:'POST', body:formData})
-             .then(res => res.json())
-             .then(finalUser => { 
-                 setUser(finalUser); 
-                 alert("✅ Profile Updated Successfully!");
-                 setView('home'); // GO TO DASHBOARD
-             })
-             .catch(err => {
-                 console.error("Image Upload Failed:", err);
-                 alert("⚠️ Name saved, but image failed (File might be too big).");
-                 setView('home'); // Go to Dashboard anyway
-             });
-
+             .then(res => res.json()).then(finalUser => { 
+                 setUser(finalUser); alert("✅ Profile Updated!"); setView('home'); 
+             }).catch(() => { alert("⚠️ Name saved, but image too big."); setView('home'); })
           } else { 
-              // 3. If only name changed, go to dashboard immediately
-              setUser(updatedUser); 
-              alert("✅ Name Updated Successfully!");
-              setView('home'); // GO TO DASHBOARD
+              setUser(updatedUser); alert("✅ Name Updated!"); setView('home'); 
           }
-      })
-      .catch(err => {
-          alert("❌ Update Failed. Please try again.");
-          console.error(err);
-      });
+      }).catch(() => alert("❌ Update Failed."))
   }
 
   const handleUpgrade = (e) => {
@@ -120,14 +94,10 @@ function App() {
     .then(() => { alert("🎵 Song Uploaded!"); setShowUpload(false); fetchSongs(); })
   }
 
-  // 👇 UPDATED: Uses timestamp (?t=...) to force browser to load new image
-  const getImage = (u) => u.profilePic 
-    ? `http://localhost:8080/music/${u.profilePic}?t=${new Date().getTime()}` 
-    : `https://ui-avatars.com/api/?name=${u.username}&background=random`;
+  const getImage = (u) => u.profilePic ? `http://localhost:8080/music/${u.profilePic}?t=${new Date().getTime()}` : `https://ui-avatars.com/api/?name=${u.username}&background=random`;
 
   if (!user) return <Login onLogin={setUser} />
 
-  // Filter songs for the logged in artist
   const mySongs = songs.filter(s => s.artist === (user.firstName || user.username));
 
   return (
@@ -144,11 +114,8 @@ function App() {
         
         {user.role === 'LISTENER' && <div className="nav-section"><div className="nav-item" onClick={() => setShowUpgradeModal(true)} style={{color: '#ffd700'}}><StarIcon /> <span>Become an Artist</span></div></div>}
         
-        {/* LOGOUT BUTTON */}
         <div style={{padding:'0 24px', marginTop:'auto', marginBottom:'20px'}}>
-             <div className="logout-btn-sidebar" onClick={() => setUser(null)}>
-                <LogoutIcon /> <span>Log Out</span>
-             </div>
+             <div className="logout-btn-sidebar" onClick={() => setUser(null)}><LogoutIcon /> <span>Log Out</span></div>
         </div>
       </div>
 
@@ -168,11 +135,13 @@ function App() {
         {/* === VIEW: ARTIST DASHBOARD (HOME) === */}
         {(view === 'home' && user.role === 'ARTIST') && (
             <>
+                {/* 1. Artist Hero */}
                 <div className="dashboard-hero">
                     <h1>Artist Command Center</h1>
                     <p>Manage your music, check your stats, and grow your audience.</p>
                 </div>
 
+                {/* 2. Stats Row */}
                 <div className="stats-container">
                     <div className="stat-card">
                         <span className="stat-number">{mySongs.length}</span>
@@ -188,6 +157,19 @@ function App() {
                     </div>
                 </div>
 
+                {/* 3. NEW: Visual Chart Simulation */}
+                <div style={{marginBottom:'40px', background:'rgba(255,255,255,0.02)', padding:'20px', borderRadius:'16px', border:'1px solid rgba(255,255,255,0.05)'}}>
+                    <h4 style={{marginTop:0, color:'#b3b3b3'}}>Weekly Listener Growth</h4>
+                    <div style={{display:'flex', alignItems:'flex-end', gap:'10px', height:'100px', paddingBottom:'10px'}}>
+                        {[40, 60, 45, 80, 55, 90, 100].map((h, i) => (
+                            <div key={i} style={{flex:1, background: i===6 ? '#1db954' : '#333', height: `${h}%`, borderRadius:'4px 4px 0 0', opacity:0.8}}></div>
+                        ))}
+                    </div>
+                    <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.7rem', color:'#666'}}>
+                        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                    </div>
+                </div>
+
                 <h3 style={{marginBottom:'15px'}}>Your Discography</h3>
                 <div className="track-list-container">
                     {mySongs.length > 0 ? mySongs.map(song => (
@@ -197,9 +179,7 @@ function App() {
                                 <div className="track-title">{song.title}</div>
                                 <div className="track-meta">Added recently</div>
                             </div>
-                            <div className="track-actions">
-                                <PlayIcon />
-                            </div>
+                            <div className="track-actions"><PlayIcon /></div>
                         </div>
                     )) : (
                         <div style={{textAlign:'center', padding:'30px', color:'#888'}}>
@@ -211,9 +191,26 @@ function App() {
             </>
         )}
 
-        {/* === VIEW: LISTENER HOME (Popular Artists) === */}
+        {/* === VIEW: LISTENER HOME (HOME) === */}
         {(view === 'home' && user.role !== 'ARTIST') && (
             <>
+                {/* 1. NEW: Fresh Drops (Latest Songs) Row */}
+                <h2 style={{fontSize: '1.5rem', marginBottom: '15px'}}>Fresh Drops 🎵</h2>
+                <div style={{display:'flex', gap:'20px', overflowX:'auto', paddingBottom:'20px', marginBottom:'30px'}}>
+                    {songs.slice(0, 6).map(song => (
+                        <div key={song.id} className="artist-card" style={{minWidth:'160px'}} onClick={() => playSong(song)}>
+                            <div className="image-box">
+                                <img src={`https://ui-avatars.com/api/?name=${song.title}&background=1db954&color=fff&size=200`} className="artist-img" />
+                                <div className="play-overlay"><PlayIcon /></div>
+                            </div>
+                            <h3 className="card-title" style={{fontSize:'0.9rem'}}>{song.title}</h3>
+                            <p className="card-desc" style={{fontSize:'0.8rem'}}>{song.artist}</p>
+                        </div>
+                    ))}
+                    {songs.length === 0 && <p style={{color:'#666'}}>No songs uploaded yet. Be the first!</p>}
+                </div>
+
+                {/* 2. Popular Artists Grid */}
                 <h2 style={{fontSize: '1.5rem', marginBottom: '20px'}}>Popular Artists</h2>
                 <div className="artist-grid">
                     {artists.map(artist => (
@@ -227,7 +224,7 @@ function App() {
             </>
         )}
 
-        {/* === VIEW: ARTIST DETAIL (Listener Viewing an Artist) === */}
+        {/* === VIEW: ARTIST DETAIL === */}
         {view === 'artist' && viewedArtist && (
             <>
                 <div style={{display:'flex', alignItems:'center', gap:'20px', marginBottom:'40px'}}>
@@ -262,16 +259,8 @@ function App() {
                         </label>
                         <input id="profile-upload" type="file" onChange={e=>setEditPic(e.target.files[0])} style={{display:'none'}} />
                     </div>
-                    <div className="premium-input-group">
-                        <label className="premium-label">Display Name</label>
-                        <input className="premium-input" value={editName} onChange={e=>setEditName(e.target.value)} placeholder="How should we call you?" />
-                    </div>
-                    <div className="premium-input-group">
-                        <label className="premium-label">Role</label>
-                        <div style={{color:'white', fontWeight:'bold', fontSize:'1.2rem', display:'flex', alignItems:'center', gap:'10px'}}>
-                            {user.role} {user.role === 'ARTIST' && <span style={{fontSize:'0.8rem', background:'#1db954', padding:'2px 8px', borderRadius:'10px', color:'black'}}>VERIFIED</span>}
-                        </div>
-                    </div>
+                    <div className="premium-input-group"><label className="premium-label">Display Name</label><input className="premium-input" value={editName} onChange={e=>setEditName(e.target.value)} placeholder="How should we call you?" /></div>
+                    <div className="premium-input-group"><label className="premium-label">Role</label><div style={{color:'white', fontWeight:'bold', fontSize:'1.2rem', display:'flex', alignItems:'center', gap:'10px'}}>{user.role} {user.role === 'ARTIST' && <span style={{fontSize:'0.8rem', background:'#1db954', padding:'2px 8px', borderRadius:'10px', color:'black'}}>VERIFIED</span>}</div></div>
                     <button type="submit" className="login-btn" style={{marginTop:'20px'}}>💾 Save Profile Changes</button>
                 </form>
             </div>
@@ -285,13 +274,8 @@ function App() {
                     <p style={{color:'#888', marginBottom:'25px', fontSize:'0.9rem'}}>Share your sound with the world.</p>
                     <form onSubmit={handleUpload}>
                         <div className="premium-input-group"><input name="title" className="premium-input" placeholder="Song Title" required /></div>
-                        <div className="premium-input-group">
-                            <label className="file-upload-zone"><MusicFileIcon /><span style={{fontWeight:'600'}}>Click to select MP3</span><input name="file" type="file" accept=".mp3" required style={{display:'none'}} /></label>
-                        </div>
-                        <div style={{display:'flex', gap:'15px', marginTop:'30px'}}>
-                            <button className="login-btn" style={{margin:0}}>🚀 Upload</button>
-                            <button type="button" onClick={()=>setShowUpload(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'12px 25px', borderRadius:'50px', cursor:'pointer', fontWeight:'bold'}}>Cancel</button>
-                        </div>
+                        <div className="premium-input-group"><label className="file-upload-zone"><MusicFileIcon /><span style={{fontWeight:'600'}}>Click to select MP3</span><input name="file" type="file" accept=".mp3" required style={{display:'none'}} /></label></div>
+                        <div style={{display:'flex', gap:'15px', marginTop:'30px'}}><button className="login-btn" style={{margin:0}}>🚀 Upload</button><button type="button" onClick={()=>setShowUpload(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'12px 25px', borderRadius:'50px', cursor:'pointer', fontWeight:'bold'}}>Cancel</button></div>
                     </form>
                 </div>
             </div>
@@ -305,19 +289,12 @@ function App() {
                     <p style={{color:'#ccc', margin:'10px 0 25px 0'}}>Pay $9.99/mo to verify and upload.</p>
                     <form onSubmit={handleUpgrade}>
                         <div className="premium-input-group"><textarea className="premium-input" placeholder="Tell us about yourself (Bio)..." value={upgradeBio} onChange={e=>setUpgradeBio(e.target.value)} required rows={3} style={{resize:'none'}} /></div>
-                        <div className="premium-input-group">
-                            <label className="premium-label">Artist Profile Image</label>
-                            <label className="file-upload-zone"><CameraIcon /><span>Select Artist Photo</span><input type="file" onChange={e=>setUpgradePic(e.target.files[0])} required style={{display:'none'}} /></label>
-                        </div>
-                        <div style={{display:'flex', gap:'15px', marginTop:'20px'}}>
-                            <button className="login-btn" style={{margin:0, background:'white', color:'black', borderColor:'white'}}>Pay & Upgrade</button>
-                            <button type="button" onClick={()=>setShowUpgradeModal(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'12px', borderRadius:'50px', cursor:'pointer'}}>Cancel</button>
-                        </div>
+                        <div className="premium-input-group"><label className="premium-label">Artist Profile Image</label><label className="file-upload-zone"><CameraIcon /><span>Select Artist Photo</span><input type="file" onChange={e=>setUpgradePic(e.target.files[0])} required style={{display:'none'}} /></label></div>
+                        <div style={{display:'flex', gap:'15px', marginTop:'20px'}}><button className="login-btn" style={{margin:0, background:'white', color:'black', borderColor:'white'}}>Pay & Upgrade</button><button type="button" onClick={()=>setShowUpgradeModal(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'12px', borderRadius:'50px', cursor:'pointer'}}>Cancel</button></div>
                     </form>
                 </div>
             </div>
         )}
-
       </div>
     </div>
   )
