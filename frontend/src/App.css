@@ -515,3 +515,82 @@ body {
 }
 
 .logout-btn-sidebar:hover { background: #ff4d4d; color: white; }
+
+/* --- CUSTOM SLIDERS (Progress & Volume) --- */
+/* The track line */
+input[type=range] {
+  -webkit-appearance: none; /* Hides the slider so custom styles can be added */
+  width: 100%; /* Specific width is required for Firefox. */
+  background: transparent; /* Otherwise white in Chrome */
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+}
+input[type=range]:focus {
+  outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
+}
+input[type=range]::-ms-track {
+  width: 100%;
+  cursor: pointer;
+  background: transparent; 
+  border-color: transparent;
+  color: transparent;
+}
+
+/* The Thumb (the draggable circle) */
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: #1db954; /* Green */
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    margin-top: -4px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+}
+/* The Track (the background line) */
+input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: #555; /* Grey background track */
+    border-radius: 2px;
+}
+/* Firefox overrides */
+input[type="range"]::-moz-range-thumb {
+    height: 12px; width: 12px; border-radius: 50%; background: #1db954; cursor: pointer; border: none;
+}
+input[type="range"]::-moz-range-progress { background: #1db954; height: 4px; border-radius: 2px; }
+input[type="range"]::-moz-range-track { background: #555; height: 4px; border-radius: 2px; }
+
+/* --- 🎵 THE GLASS PLAYER BAR --- */
+.glass-player-bar {
+  position: fixed; /* Sticks to the viewport */
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 90px;
+  background: rgba(0, 0, 0, 0.85); /* Dark transparent background */
+  backdrop-filter: blur(12px);      /* The "Glass" Blur Effect */
+  border-top: 1px solid rgba(255, 255, 255, 0.1); /* Subtle top border */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  z-index: 1000; /* Ensures it sits ON TOP of everything */
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.5); /* Shadow for depth */
+  animation: slideUp 0.3s ease-out; /* Smooth entrance animation */
+}
+
+/* Smooth Slide Up Animation */
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Responsive adjustments for the player */
+@media (max-width: 768px) {
+  .glass-player-bar {
+    padding: 0 10px;
+  }
+}
