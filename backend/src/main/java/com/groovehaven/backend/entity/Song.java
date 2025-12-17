@@ -14,7 +14,8 @@ public class Song {
     private String album;   // Optional
 
     private String filePath; // Where the MP3 file is stored on the computer
-    private String coverPath; // Optional: Unique image for the song
+    private String coverPath;
+    private String coverImage;// Optional: Unique image for the song
 
     // --- GETTERS AND SETTERS ---
     public Long getId() { return id; }
@@ -34,4 +35,8 @@ public class Song {
 
     public String getCoverPath() { return coverPath; }
     public void setCoverPath(String coverPath) { this.coverPath = coverPath; }
+
+    public String getCoverImage() { return coverImage; }
+    public void setCoverImage(String coverImage) { this.coverImage = coverImage; } 
+
 }
