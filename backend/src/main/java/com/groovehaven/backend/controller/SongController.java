@@ -22,9 +22,7 @@ public class SongController {
     @Autowired
     private SongRepository songRepository;
 
-    // Define where to save the files.
-    // IMPORTANT: Change this to a real folder on your computer!
-    // Example for Windows: "C:/GrooveHaven_Music/"
+    // 👇 KEEP YOUR DESKTOP PATH HERE!
     private static final String UPLOAD_DIR = "C:/Users/DELL/Desktop/groove-haven/GrooveHaven_Music/";
 
     @GetMapping
@@ -36,26 +34,27 @@ public class SongController {
     public Song uploadSong(
             @RequestParam("title") String title,
             @RequestParam("artist") String artist,
-            @RequestParam("file") MultipartFile file) throws IOException {
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("cover") MultipartFile cover) throws IOException { // 👈 Added 'cover' param
 
-        // 1. Create the upload directory if it doesn't exist
+        // 1. Create directory if needed
         File directory = new File(UPLOAD_DIR);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
+        if (!directory.exists()) directory.mkdirs();
 
-        // 2. Generate a unique file name so uploads don't overwrite each other
-        String uniqueFileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-        Path filePath = Paths.get(UPLOAD_DIR + uniqueFileName);
+        // 2. Save MP3 File
+        String uniqueMp3Name = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        Files.write(Paths.get(UPLOAD_DIR + uniqueMp3Name), file.getBytes());
 
-        // 3. Save the actual MP3 file to the folder
-        Files.write(filePath, file.getBytes());
+        // 3. Save Cover Image File
+        String uniqueCoverName = UUID.randomUUID().toString() + "_" + cover.getOriginalFilename();
+        Files.write(Paths.get(UPLOAD_DIR + uniqueCoverName), cover.getBytes());
 
-        // 4. Save the song details to the Database
+        // 4. Save to DB
         Song song = new Song();
         song.setTitle(title);
         song.setArtist(artist);
-        song.setFilePath(uniqueFileName); // We only save the name, not the full path
+        song.setFilePath(uniqueMp3Name);
+        song.setCoverImage(uniqueCoverName); // 👈 Save the image name
 
         return songRepository.save(song);
     }
