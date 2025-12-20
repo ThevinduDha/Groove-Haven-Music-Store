@@ -3,7 +3,7 @@ package com.groovehaven.backend.controller;
 import com.groovehaven.backend.entity.Artist;
 import com.groovehaven.backend.repository.ArtistRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*; // Imported all annotations
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -15,38 +15,37 @@ public class ArtistController {
     @Autowired
     private ArtistRepository artistRepository;
 
-    // 1. READ: Get all artists
     @GetMapping
     public List<Artist> getAllArtists() {
         return artistRepository.findAll();
     }
 
-    // 2. CREATE: Add a new artist
+    @GetMapping("/{id}")
+    public Artist getArtistById(@PathVariable Long id) {
+        return artistRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Artist not found with id: " + id));
+    }
+
     @PostMapping
     public Artist createArtist(@RequestBody Artist artist) {
         return artistRepository.save(artist);
     }
 
-    // 3. UPDATE: Change details of an existing artist
+    // 👇 FIXED: Only updates Bio (Name/Image are in User table now)
     @PutMapping("/{id}")
     public Artist updateArtist(@PathVariable Long id, @RequestBody Artist artistDetails) {
-        // Step 1: Find the artist or throw an error
         Artist artist = artistRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Artist not found with id: " + id));
 
-        // Step 2: Update the fields
-        artist.setName(artistDetails.getName());
-        artist.setBio(artistDetails.getBio());
-        artist.setImageUniqueId(artistDetails.getImageUniqueId());
+        if (artistDetails.getBio() != null) {
+            artist.setBio(artistDetails.getBio());
+        }
 
-        // Step 3: Save back to database
         return artistRepository.save(artist);
     }
 
-    // 4. DELETE: Remove an artist
     @DeleteMapping("/{id}")
-    public String deleteArtist(@PathVariable Long id) {
+    public void deleteArtist(@PathVariable Long id) {
         artistRepository.deleteById(id);
-        return "Artist deleted successfully with id: " + id;
     }
 }
