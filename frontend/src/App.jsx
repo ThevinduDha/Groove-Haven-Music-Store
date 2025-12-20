@@ -37,7 +37,6 @@ function App() {
   const [allUsers, setAllUsers] = useState([]) 
   const [likedSongIds, setLikedSongIds] = useState([]) 
 
-  // 👇 NEW: Search State
   const [searchQuery, setSearchQuery] = useState("") 
   const [searchResults, setSearchResults] = useState(null)
 
@@ -63,7 +62,6 @@ function App() {
       }
   }, [user])
 
-  // 👇 NEW: Search Effect (Runs whenever you type)
   useEffect(() => {
       if(searchQuery.length > 0) {
           fetch(`http://localhost:8080/search?query=${searchQuery}`)
@@ -78,6 +76,18 @@ function App() {
   const fetchSongs = () => fetch('http://localhost:8080/songs').then(res => res.json()).then(setSongs)
   const fetchLikedIDs = () => fetch(`http://localhost:8080/likes/${user.id}/ids`).then(res => res.json()).then(setLikedSongIds)
   const fetchAllUsers = () => fetch('http://localhost:8080/users/artists').then(res => res.json()).then(setAllUsers) 
+
+  // 👇 NEW: Handle User Deletion (Admin)
+  const handleDeleteUser = (userId) => {
+      if(window.confirm("⚠️ Are you sure? This will delete the user and their likes!")) {
+          fetch(`http://localhost:8080/users/${userId}`, { method: 'DELETE' })
+          .then(() => {
+              alert("User Deleted!");
+              setAllUsers(allUsers.filter(u => u.id !== userId)); // Update UI instantly
+          })
+          .catch(() => alert("❌ Error deleting user"));
+      }
+  }
 
   useEffect(() => {
     if(currentSong && audioRef.current) {
@@ -126,7 +136,6 @@ function App() {
   const showArtistDashboard = user.role === 'ARTIST' && isArtistMode && !searchQuery;
   const showListenerView = (user.role === 'LISTENER' || (user.role === 'ARTIST' && !isArtistMode)) && !searchQuery;
   const showAdminView = user.role === 'ADMIN' && !searchQuery;
-  // 👇 NEW: Logic for Search View
   const showSearchView = searchQuery.length > 0 && searchResults;
 
   return (
@@ -148,80 +157,52 @@ function App() {
 
       <div className="main-content" style={{overflowY: 'auto', paddingBottom: currentSong ? '120px' : '40px'}}>
         
-        {/* 👇 UPDATED HEADER WITH SEARCH BAR */}
         <div className="header-bar" style={{gap:'20px'}}>
             {view === 'artist' && <div onClick={() => setView('home')} style={{cursor:'pointer', marginRight:'20px'}}><BackIcon /></div>}
             <div className="search-container" style={{flex:1, maxWidth:'400px', position:'relative'}}>
-                 <input 
-                    placeholder="What do you want to play?" 
-                    className="search-input" 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{width:'100%', padding:'12px 20px 12px 45px', borderRadius:'50px', border:'none', background:'#333', color:'white', fontSize:'0.9rem'}}
-                 />
+                 <input placeholder="What do you want to play?" className="search-input" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{width:'100%', padding:'12px 20px 12px 45px', borderRadius:'50px', border:'none', background:'#333', color:'white', fontSize:'0.9rem'}}/>
                  <div style={{position:'absolute', left:'15px', top:'50%', transform:'translateY(-50%)'}}><SearchIcon /></div>
             </div>
             <div className="greeting" style={{marginLeft:'auto'}}>{view === 'profile' ? "Account Settings" : view === 'liked' ? "Your Collection" : (view === 'artist' ? viewedArtist.firstName : `Hello, ${user.firstName || user.username}`)}</div>
             {(showArtistDashboard && view === 'home') && (<button className="add-btn-pill" onClick={() => setShowUpload(true)} style={{display:'flex', alignItems:'center', gap:'5px'}}><UploadIcon /> New Drop</button>)}
         </div>
 
-        {/* 👇 NEW: SEARCH RESULTS VIEW */}
         {showSearchView && (
             <>
                 <h2 style={{fontSize: '1.5rem', marginBottom: '15px'}}>Top Result</h2>
-                {/* 1. Artist Matches */}
                 {searchResults.artists && searchResults.artists.length > 0 && (
-                    <div className="artist-grid" style={{marginBottom:'30px'}}>
-                        {searchResults.artists.map(artist => (<div key={artist.id} className="artist-card" style={{background:'transparent', border:'none', boxShadow:'none', textAlign:'center', cursor:'pointer'}} onClick={() => { setViewedArtist(artist); setView('artist'); }}><img src={getImage(artist)} style={artistCircleStyle} className="artist-img-hover" /><h3 className="card-title" style={{fontSize:'1rem', margin:'5px 0'}}>{artist.firstName || artist.username}</h3><p className="card-desc" style={{margin:0}}>Artist</p></div>))}
-                    </div>
+                    <div className="artist-grid" style={{marginBottom:'30px'}}>{searchResults.artists.map(artist => (<div key={artist.id} className="artist-card" style={{background:'transparent', border:'none', boxShadow:'none', textAlign:'center', cursor:'pointer'}} onClick={() => { setViewedArtist(artist); setView('artist'); }}><img src={getImage(artist)} style={artistCircleStyle} className="artist-img-hover" /><h3 className="card-title" style={{fontSize:'1rem', margin:'5px 0'}}>{artist.firstName || artist.username}</h3><p className="card-desc" style={{margin:0}}>Artist</p></div>))}</div>
                 )}
-                
-                {/* 2. Song Matches */}
                 {searchResults.songs && searchResults.songs.length > 0 ? (
-                    <div className="track-list-container">
-                        {searchResults.songs.map(song => (<div key={song.id} className="track-row" onClick={() => playSong(song)}><img src={getSongCover(song)} className="track-img-small" style={{objectFit:'cover'}} /><div className="track-info"><div className="track-title">{song.title}</div><div className="track-meta">{song.artist}</div></div><div className="track-actions"><div onClick={(e) => toggleLike(e, song)} style={{marginRight:'15px', cursor:'pointer'}}><HeartIcon filled={likedSongIds.includes(song.id)} /></div>{(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}</div></div>))}
-                    </div>
-                ) : (
-                    searchResults.artists.length === 0 && <p style={{color:'#666'}}>No songs or artists found for "{searchQuery}"</p>
-                )}
+                    <div className="track-list-container">{searchResults.songs.map(song => (<div key={song.id} className="track-row" onClick={() => playSong(song)}><img src={getSongCover(song)} className="track-img-small" style={{objectFit:'cover'}} /><div className="track-info"><div className="track-title">{song.title}</div><div className="track-meta">{song.artist}</div></div><div className="track-actions"><div onClick={(e) => toggleLike(e, song)} style={{marginRight:'15px', cursor:'pointer'}}><HeartIcon filled={likedSongIds.includes(song.id)} /></div>{(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}</div></div>))}</div>
+                ) : (searchResults.artists.length === 0 && <p style={{color:'#666'}}>No songs or artists found for "{searchQuery}"</p>)}
             </>
         )}
 
-        {/* 1. ARTIST DASHBOARD */}
         {(view === 'home' && showArtistDashboard) && (
-            <>
-                <div className="dashboard-hero"><h1>Artist Command Center</h1><p>Manage your music, check your stats, and grow your audience.</p></div>
-                <div className="stats-container"><div className="stat-card"><span className="stat-number">{mySongs.length}</span><span className="stat-label">Tracks Uploaded</span></div><div className="stat-card"><span className="stat-number">12.5K</span><span className="stat-label">Total Streams</span></div><div className="stat-card"><span className="stat-number">842</span><span className="stat-label">Followers</span></div></div>
-                <h3 style={{marginBottom:'15px'}}>Your Discography</h3>
-                <div className="track-list-container">{mySongs.map(song => (<div key={song.id} className="track-row" onClick={() => playSong(song)}><img src={getSongCover(song)} className="track-img-small" style={{objectFit:'cover'}} /><div className="track-info"><div className="track-title">{song.title}</div><div className="track-meta">Added recently</div></div><div className="track-actions">{(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}</div></div>))}</div>
-            </>
+            <><div className="dashboard-hero"><h1>Artist Command Center</h1><p>Manage your music, check your stats, and grow your audience.</p></div><div className="stats-container"><div className="stat-card"><span className="stat-number">{mySongs.length}</span><span className="stat-label">Tracks Uploaded</span></div><div className="stat-card"><span className="stat-number">12.5K</span><span className="stat-label">Total Streams</span></div><div className="stat-card"><span className="stat-number">842</span><span className="stat-label">Followers</span></div></div><h3 style={{marginBottom:'15px'}}>Your Discography</h3><div className="track-list-container">{mySongs.map(song => (<div key={song.id} className="track-row" onClick={() => playSong(song)}><img src={getSongCover(song)} className="track-img-small" style={{objectFit:'cover'}} /><div className="track-info"><div className="track-title">{song.title}</div><div className="track-meta">Added recently</div></div><div className="track-actions">{(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}</div></div>))}</div></>
         )}
 
-        {/* 2. LISTENER HOME */}
         {(view === 'home' && showListenerView) && (
-            <>
-                <h2 style={{fontSize: '1.5rem', marginBottom: '15px'}}>Fresh Drops 🎵</h2>
-                <div style={{display:'flex', gap:'20px', overflowX:'auto', paddingBottom:'25px', marginBottom:'30px', scrollSnapType: 'x mandatory'}}>
-                    {songs.slice(0, 10).map(song => (
-                        <div key={song.id} className="artist-card-hover" style={cardStyle} onClick={() => playSong(song)}>
-                            <div style={imageContainerStyle}><img src={getSongCover(song)} style={imageStyle} /><div className="play-overlay" style={{opacity: (currentSong?.id === song.id && isPlaying) ? 1 : undefined, transform: (currentSong?.id === song.id && isPlaying) ? 'translateY(0)' : undefined}}>{(currentSong?.id === song.id && isPlaying) ? <PauseIcon fill="white"/> : <PlayIcon fill="white"/>}</div></div>
-                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}><div style={{overflow:'hidden', maxWidth:'130px'}}><h3 style={titleStyle} title={song.title}>{song.title}</h3><p className="card-desc" style={{fontSize:'0.8rem', margin:0}}>{song.artist}</p></div><div onClick={(e) => toggleLike(e, song)} style={{cursor:'pointer', padding:'5px'}}><HeartIcon filled={likedSongIds.includes(song.id)} /></div></div>
-                        </div>
-                    ))}
-                </div>
-                <h2 style={{fontSize: '1.5rem', marginBottom: '20px'}}>Popular Artists</h2>
-                <div className="artist-grid" style={{gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap:'30px'}}>{artists.map(artist => (<div key={artist.id} className="artist-card" style={{background:'transparent', border:'none', boxShadow:'none', textAlign:'center', cursor:'pointer'}} onClick={() => { setViewedArtist(artist); setView('artist'); }}><img src={getImage(artist)} style={artistCircleStyle} className="artist-img-hover" /><h3 className="card-title" style={{fontSize:'1rem', margin:'5px 0'}}>{artist.firstName || artist.username}</h3><p className="card-desc" style={{margin:0}}>Artist</p></div>))}</div>
-            </>
+            <><h2 style={{fontSize: '1.5rem', marginBottom: '15px'}}>Fresh Drops 🎵</h2><div style={{display:'flex', gap:'20px', overflowX:'auto', paddingBottom:'25px', marginBottom:'30px', scrollSnapType: 'x mandatory'}}>{songs.slice(0, 10).map(song => (<div key={song.id} className="artist-card-hover" style={cardStyle} onClick={() => playSong(song)}><div style={imageContainerStyle}><img src={getSongCover(song)} style={imageStyle} /><div className="play-overlay" style={{opacity: (currentSong?.id === song.id && isPlaying) ? 1 : undefined, transform: (currentSong?.id === song.id && isPlaying) ? 'translateY(0)' : undefined}}>{(currentSong?.id === song.id && isPlaying) ? <PauseIcon fill="white"/> : <PlayIcon fill="white"/>}</div></div><div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}><div style={{overflow:'hidden', maxWidth:'130px'}}><h3 style={titleStyle} title={song.title}>{song.title}</h3><p className="card-desc" style={{fontSize:'0.8rem', margin:0}}>{song.artist}</p></div><div onClick={(e) => toggleLike(e, song)} style={{cursor:'pointer', padding:'5px'}}><HeartIcon filled={likedSongIds.includes(song.id)} /></div></div></div>))}</div><h2 style={{fontSize: '1.5rem', marginBottom: '20px'}}>Popular Artists</h2><div className="artist-grid" style={{gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap:'30px'}}>{artists.map(artist => (<div key={artist.id} className="artist-card" style={{background:'transparent', border:'none', boxShadow:'none', textAlign:'center', cursor:'pointer'}} onClick={() => { setViewedArtist(artist); setView('artist'); }}><img src={getImage(artist)} style={artistCircleStyle} className="artist-img-hover" /><h3 className="card-title" style={{fontSize:'1rem', margin:'5px 0'}}>{artist.firstName || artist.username}</h3><p className="card-desc" style={{margin:0}}>Artist</p></div>))}</div></>
         )}
 
-        {/* 3. ADMIN PANEL */}
         {(view === 'home' && showAdminView) && (
-            <>
-                <div className="dashboard-hero" style={{background:'linear-gradient(135deg, #890000 0%, #1a0000 100%)'}}><h1>Admin Console</h1><p>System Overview & User Management</p></div>
-                <div className="stats-container"><div className="stat-card"><span className="stat-number">{allUsers.length}</span><span className="stat-label">Total Users</span></div><div className="stat-card"><span className="stat-number">{songs.length}</span><span className="stat-label">Total Songs</span></div></div>
-                <h3 style={{marginBottom:'20px'}}>User Database</h3>
-                <div className="track-list-container">{allUsers.map(u => (<div key={u.id} className="track-row" style={{cursor:'default'}}><img src={getImage(u)} className="track-img-small" style={{borderRadius:'50%'}} /><div className="track-info"><div className="track-title">{u.username}</div><div className="track-meta" style={{color: u.role === 'ARTIST' ? '#1db954' : '#b3b3b3'}}>{u.role}</div></div><div className="track-actions"><button style={{background:'transparent', border:'1px solid red', color:'red', padding:'5px 10px', borderRadius:'5px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}><TrashIcon /> Remove</button></div></div>))}</div>
-            </>
+            <><div className="dashboard-hero" style={{background:'linear-gradient(135deg, #890000 0%, #1a0000 100%)'}}><h1>Admin Console</h1><p>System Overview & User Management</p></div><div className="stats-container"><div className="stat-card"><span className="stat-number">{allUsers.length}</span><span className="stat-label">Total Users</span></div><div className="stat-card"><span className="stat-number">{songs.length}</span><span className="stat-label">Total Songs</span></div></div><h3 style={{marginBottom:'20px'}}>User Database</h3>
+            <div className="track-list-container">
+                {allUsers.map(u => (
+                    <div key={u.id} className="track-row" style={{cursor:'default'}}>
+                        <img src={getImage(u)} className="track-img-small" style={{borderRadius:'50%'}} />
+                        <div className="track-info"><div className="track-title">{u.username}</div><div className="track-meta" style={{color: u.role === 'ARTIST' ? '#1db954' : '#b3b3b3'}}>{u.role}</div></div>
+                        <div className="track-actions">
+                            {/* 👇 NEW: BUTTON NOW CALLS handleDeleteUser */}
+                            <button onClick={() => handleDeleteUser(u.id)} style={{background:'transparent', border:'1px solid red', color:'red', padding:'5px 10px', borderRadius:'5px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}>
+                                <TrashIcon /> Remove
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div></>
         )}
 
         {view === 'liked' && (
@@ -232,7 +213,6 @@ function App() {
             <><div style={{display:'flex', alignItems:'center', gap:'20px', marginBottom:'40px'}}><img src={getImage(viewedArtist)} style={{width:'180px', height:'180px', borderRadius:'50%', objectFit:'cover', boxShadow:'0 10px 40px rgba(0,0,0,0.6)'}} /><div><h1 style={{fontSize:'3.5rem', margin:0, fontWeight:'800'}}>{viewedArtist.firstName || viewedArtist.username}</h1><p style={{color:'#ccc', fontSize:'1.1rem'}}>{viewedArtist.bio || "No bio yet."}</p></div></div><h3>Songs</h3><div className="artist-grid">{songs.filter(s => s.artist === (viewedArtist.firstName || viewedArtist.username)).map(song => (<div key={song.id} className="artist-card" onClick={() => playSong(song)}><div className="image-box"><img src={getSongCover(song)} className="artist-img" style={{objectFit:'cover'}} /><div className="play-overlay" style={{opacity: (currentSong?.id === song.id && isPlaying) ? 1 : undefined, transform: (currentSong?.id === song.id && isPlaying) ? 'translateY(0)' : undefined}}>{(currentSong?.id === song.id && isPlaying) ? <PauseIcon fill="white"/> : <PlayIcon fill="white"/>}</div></div><div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'10px'}}><h3 className="card-title" style={titleStyle}>{song.title}</h3><div onClick={(e) => toggleLike(e, song)} style={{cursor:'pointer', padding:'5px'}}><HeartIcon filled={likedSongIds.includes(song.id)} /></div></div></div>))}</div></>
         )}
 
-        {/* MODALS */}
         {view === 'profile' && (<div className="profile-editor-container"><form onSubmit={handleProfileUpdate}><div className="profile-avatar-wrapper"><label htmlFor="profile-upload" style={{cursor: 'pointer'}}><img src={editPic ? URL.createObjectURL(editPic) : getImage(user)} className="profile-avatar-large" style={{objectFit:'cover'}} /><div className="avatar-edit-overlay"><CameraIcon /></div></label><input id="profile-upload" type="file" onChange={e=>setEditPic(e.target.files[0])} style={{display:'none'}} /></div><div className="premium-input-group"><label className="premium-label">Display Name</label><input className="premium-input" value={editName} onChange={e=>setEditName(e.target.value)} placeholder="How should we call you?" /></div><div className="premium-input-group"><label className="premium-label">Role</label><div style={{color:'white', fontWeight:'bold', fontSize:'1.2rem', display:'flex', alignItems:'center', gap:'10px'}}>{user.role} {user.role === 'ARTIST' && <span style={{fontSize:'0.8rem', background:'#1db954', padding:'2px 8px', borderRadius:'10px', color:'black'}}>VERIFIED</span>}</div></div><button type="submit" className="login-btn" style={{marginTop:'20px'}}>💾 Save Profile Changes</button></form></div>)}
         {showUpload && (<div className="premium-modal-overlay"><div className="premium-card"><h2 style={{color:'white', marginBottom:'5px'}}>Upload New Track</h2><form onSubmit={handleUpload}><div className="premium-input-group"><input name="title" className="premium-input" placeholder="Song Title" required /></div><div className="premium-input-group"><label className="file-upload-zone"><MusicFileIcon /><span style={{fontWeight:'600'}}>Select MP3</span><input name="file" type="file" accept=".mp3" required style={{display:'none'}} /></label></div><div className="premium-input-group"><label className="file-upload-zone" style={{borderColor: '#b3b3b3'}}><ImageIcon /><span style={{fontWeight:'600'}}>Select Cover Art</span><input name="cover" type="file" accept="image/*" required style={{display:'none'}} /></label></div><div style={{display:'flex', gap:'15px', marginTop:'30px'}}><button className="login-btn" style={{margin:0}}>🚀 Upload</button><button type="button" onClick={()=>setShowUpload(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'12px 25px', borderRadius:'50px', cursor:'pointer', fontWeight:'bold'}}>Cancel</button></div></form></div></div>)}
         {showUpgradeModal && (<div className="premium-modal-overlay"><div className="premium-card"><div style={{fontSize:'3rem', marginBottom:'10px'}}>💎</div><h2 style={{color:'#1db954', margin:0}}>Artist Plan</h2><form onSubmit={handleUpgrade}><div className="premium-input-group"><textarea className="premium-input" placeholder="Bio..." value={upgradeBio} onChange={e=>setUpgradeBio(e.target.value)} required rows={3} style={{resize:'none'}} /></div><div className="premium-input-group"><label className="file-upload-zone"><CameraIcon /><span>Select Artist Photo</span><input type="file" onChange={e=>setUpgradePic(e.target.files[0])} required style={{display:'none'}} /></label></div><div style={{display:'flex', gap:'15px', marginTop:'20px'}}><button className="login-btn" style={{margin:0, background:'white', color:'black'}}>Pay & Upgrade</button><button type="button" onClick={()=>setShowUpgradeModal(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'12px', borderRadius:'50px', cursor:'pointer'}}>Cancel</button></div></form></div></div>)}
