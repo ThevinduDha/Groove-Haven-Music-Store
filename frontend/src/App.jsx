@@ -25,6 +25,8 @@ const ShieldIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" s
 const TrashIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="red" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
 const SwitchIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
 const SearchIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b3b3b3" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+const UserPlusIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+const UserCheckIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
 
 function App() {
   const [user, setUser] = useState(null)
@@ -39,6 +41,11 @@ function App() {
 
   const [searchQuery, setSearchQuery] = useState("") 
   const [searchResults, setSearchResults] = useState(null)
+
+  // Follow System States
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followerCount, setFollowerCount] = useState(0) // Count for the artist I am VIEWING
+  const [myFollowerCount, setMyFollowerCount] = useState(0) // Count for ME (if I am an artist)
 
   const [showUpload, setShowUpload] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -56,9 +63,18 @@ function App() {
 
   useEffect(() => { 
       if(user) { 
-          fetchArtists(); fetchSongs(); fetchLikedIDs(); 
+          fetchArtists(); 
+          fetchSongs(); 
+          fetchLikedIDs(); 
           setEditName(user.firstName || ""); 
           if(user.role === 'ADMIN') fetchAllUsers();
+
+          // If I am an artist, fetch MY stats for the dashboard
+          if(user.role === 'ARTIST') {
+              fetch(`http://localhost:8080/follow/count?artistId=${user.id}`)
+                  .then(res => res.json())
+                  .then(setMyFollowerCount)
+          }
       }
   }, [user])
 
@@ -72,21 +88,44 @@ function App() {
       }
   }, [searchQuery])
 
+  // Fetch Follow Status when viewing an artist
+  useEffect(() => {
+    if(view === 'artist' && viewedArtist) {
+        // 1. Check if I follow them
+        fetch(`http://localhost:8080/follow/status?followerId=${user.id}&artistId=${viewedArtist.id}`)
+            .then(res => res.json())
+            .then(setIsFollowing)
+        
+        // 2. Get their total count
+        fetch(`http://localhost:8080/follow/count?artistId=${viewedArtist.id}`)
+            .then(res => res.json())
+            .then(setFollowerCount)
+    }
+  }, [view, viewedArtist, user])
+
   const fetchArtists = () => fetch('http://localhost:8080/users/artists').then(res => res.json()).then(setArtists)
   const fetchSongs = () => fetch('http://localhost:8080/songs').then(res => res.json()).then(setSongs)
   const fetchLikedIDs = () => fetch(`http://localhost:8080/likes/${user.id}/ids`).then(res => res.json()).then(setLikedSongIds)
   const fetchAllUsers = () => fetch('http://localhost:8080/users/artists').then(res => res.json()).then(setAllUsers) 
 
-  // 👇 NEW: Handle User Deletion (Admin)
   const handleDeleteUser = (userId) => {
       if(window.confirm("⚠️ Are you sure? This will delete the user and their likes!")) {
           fetch(`http://localhost:8080/users/${userId}`, { method: 'DELETE' })
           .then(() => {
               alert("User Deleted!");
-              setAllUsers(allUsers.filter(u => u.id !== userId)); // Update UI instantly
+              setAllUsers(allUsers.filter(u => u.id !== userId)); 
           })
           .catch(() => alert("❌ Error deleting user"));
       }
+  }
+
+  const toggleFollow = () => {
+    fetch(`http://localhost:8080/follow/toggle?followerId=${user.id}&artistId=${viewedArtist.id}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(newStatus => {
+            setIsFollowing(newStatus);
+            setFollowerCount(prev => newStatus ? prev + 1 : prev - 1);
+        })
   }
 
   useEffect(() => {
@@ -180,7 +219,17 @@ function App() {
         )}
 
         {(view === 'home' && showArtistDashboard) && (
-            <><div className="dashboard-hero"><h1>Artist Command Center</h1><p>Manage your music, check your stats, and grow your audience.</p></div><div className="stats-container"><div className="stat-card"><span className="stat-number">{mySongs.length}</span><span className="stat-label">Tracks Uploaded</span></div><div className="stat-card"><span className="stat-number">12.5K</span><span className="stat-label">Total Streams</span></div><div className="stat-card"><span className="stat-number">842</span><span className="stat-label">Followers</span></div></div><h3 style={{marginBottom:'15px'}}>Your Discography</h3><div className="track-list-container">{mySongs.map(song => (<div key={song.id} className="track-row" onClick={() => playSong(song)}><img src={getSongCover(song)} className="track-img-small" style={{objectFit:'cover'}} /><div className="track-info"><div className="track-title">{song.title}</div><div className="track-meta">Added recently</div></div><div className="track-actions">{(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}</div></div>))}</div></>
+            <>
+                <div className="dashboard-hero"><h1>Artist Command Center</h1><p>Manage your music, check your stats, and grow your audience.</p></div>
+                <div className="stats-container">
+                    <div className="stat-card"><span className="stat-number">{mySongs.length}</span><span className="stat-label">Tracks Uploaded</span></div>
+                    <div className="stat-card"><span className="stat-number">12.5K</span><span className="stat-label">Total Streams</span></div>
+                    {/* 👇 REAL STATS FROM DB */}
+                    <div className="stat-card"><span className="stat-number">{myFollowerCount}</span><span className="stat-label">Followers</span></div>
+                </div>
+                <h3 style={{marginBottom:'15px'}}>Your Discography</h3>
+                <div className="track-list-container">{mySongs.map(song => (<div key={song.id} className="track-row" onClick={() => playSong(song)}><img src={getSongCover(song)} className="track-img-small" style={{objectFit:'cover'}} /><div className="track-info"><div className="track-title">{song.title}</div><div className="track-meta">Added recently</div></div><div className="track-actions">{(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}</div></div>))}</div>
+            </>
         )}
 
         {(view === 'home' && showListenerView) && (
@@ -195,7 +244,6 @@ function App() {
                         <img src={getImage(u)} className="track-img-small" style={{borderRadius:'50%'}} />
                         <div className="track-info"><div className="track-title">{u.username}</div><div className="track-meta" style={{color: u.role === 'ARTIST' ? '#1db954' : '#b3b3b3'}}>{u.role}</div></div>
                         <div className="track-actions">
-                            {/* 👇 NEW: BUTTON NOW CALLS handleDeleteUser */}
                             <button onClick={() => handleDeleteUser(u.id)} style={{background:'transparent', border:'1px solid red', color:'red', padding:'5px 10px', borderRadius:'5px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}>
                                 <TrashIcon /> Remove
                             </button>
@@ -210,7 +258,32 @@ function App() {
         )}
 
         {view === 'artist' && viewedArtist && (
-            <><div style={{display:'flex', alignItems:'center', gap:'20px', marginBottom:'40px'}}><img src={getImage(viewedArtist)} style={{width:'180px', height:'180px', borderRadius:'50%', objectFit:'cover', boxShadow:'0 10px 40px rgba(0,0,0,0.6)'}} /><div><h1 style={{fontSize:'3.5rem', margin:0, fontWeight:'800'}}>{viewedArtist.firstName || viewedArtist.username}</h1><p style={{color:'#ccc', fontSize:'1.1rem'}}>{viewedArtist.bio || "No bio yet."}</p></div></div><h3>Songs</h3><div className="artist-grid">{songs.filter(s => s.artist === (viewedArtist.firstName || viewedArtist.username)).map(song => (<div key={song.id} className="artist-card" onClick={() => playSong(song)}><div className="image-box"><img src={getSongCover(song)} className="artist-img" style={{objectFit:'cover'}} /><div className="play-overlay" style={{opacity: (currentSong?.id === song.id && isPlaying) ? 1 : undefined, transform: (currentSong?.id === song.id && isPlaying) ? 'translateY(0)' : undefined}}>{(currentSong?.id === song.id && isPlaying) ? <PauseIcon fill="white"/> : <PlayIcon fill="white"/>}</div></div><div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'10px'}}><h3 className="card-title" style={titleStyle}>{song.title}</h3><div onClick={(e) => toggleLike(e, song)} style={{cursor:'pointer', padding:'5px'}}><HeartIcon filled={likedSongIds.includes(song.id)} /></div></div></div>))}</div></>
+            <>
+                <div style={{display:'flex', alignItems:'center', gap:'20px', marginBottom:'40px'}}>
+                    <img src={getImage(viewedArtist)} style={{width:'180px', height:'180px', borderRadius:'50%', objectFit:'cover', boxShadow:'0 10px 40px rgba(0,0,0,0.6)'}} />
+                    <div>
+                        <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
+                             <h1 style={{fontSize:'3.5rem', margin:0, fontWeight:'800'}}>{viewedArtist.firstName || viewedArtist.username}</h1>
+                        </div>
+                        <p style={{color:'#ccc', fontSize:'1.1rem'}}>{viewedArtist.bio || "No bio yet."}</p>
+                        
+                        <div style={{display:'flex', alignItems:'center', gap:'20px', marginTop:'15px'}}>
+                            <button onClick={toggleFollow} style={{
+                                background: isFollowing ? 'transparent' : '#1db954',
+                                color: isFollowing ? 'white' : 'black',
+                                border: isFollowing ? '1px solid white' : 'none',
+                                padding: '8px 20px', borderRadius: '50px', fontWeight: 'bold', cursor: 'pointer',
+                                display:'flex', alignItems:'center', gap:'8px'
+                            }}>
+                                {isFollowing ? <><UserCheckIcon /> Following</> : <><UserPlusIcon /> Follow</>}
+                            </button>
+                            <span style={{color:'#b3b3b3', fontSize:'0.9rem'}}>{followerCount} Followers</span>
+                        </div>
+                    </div>
+                </div>
+                <h3>Songs</h3>
+                <div className="artist-grid">{songs.filter(s => s.artist === (viewedArtist.firstName || viewedArtist.username)).map(song => (<div key={song.id} className="artist-card" onClick={() => playSong(song)}><div className="image-box"><img src={getSongCover(song)} className="artist-img" style={{objectFit:'cover'}} /><div className="play-overlay" style={{opacity: (currentSong?.id === song.id && isPlaying) ? 1 : undefined, transform: (currentSong?.id === song.id && isPlaying) ? 'translateY(0)' : undefined}}>{(currentSong?.id === song.id && isPlaying) ? <PauseIcon fill="white"/> : <PlayIcon fill="white"/>}</div></div><div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'10px'}}><h3 className="card-title" style={titleStyle}>{song.title}</h3><div onClick={(e) => toggleLike(e, song)} style={{cursor:'pointer', padding:'5px'}}><HeartIcon filled={likedSongIds.includes(song.id)} /></div></div></div>))}</div>
+            </>
         )}
 
         {view === 'profile' && (<div className="profile-editor-container"><form onSubmit={handleProfileUpdate}><div className="profile-avatar-wrapper"><label htmlFor="profile-upload" style={{cursor: 'pointer'}}><img src={editPic ? URL.createObjectURL(editPic) : getImage(user)} className="profile-avatar-large" style={{objectFit:'cover'}} /><div className="avatar-edit-overlay"><CameraIcon /></div></label><input id="profile-upload" type="file" onChange={e=>setEditPic(e.target.files[0])} style={{display:'none'}} /></div><div className="premium-input-group"><label className="premium-label">Display Name</label><input className="premium-input" value={editName} onChange={e=>setEditName(e.target.value)} placeholder="How should we call you?" /></div><div className="premium-input-group"><label className="premium-label">Role</label><div style={{color:'white', fontWeight:'bold', fontSize:'1.2rem', display:'flex', alignItems:'center', gap:'10px'}}>{user.role} {user.role === 'ARTIST' && <span style={{fontSize:'0.8rem', background:'#1db954', padding:'2px 8px', borderRadius:'10px', color:'black'}}>VERIFIED</span>}</div></div><button type="submit" className="login-btn" style={{marginTop:'20px'}}>💾 Save Profile Changes</button></form></div>)}
