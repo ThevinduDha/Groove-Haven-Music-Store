@@ -27,9 +27,10 @@ const SwitchIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" s
 const SearchIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b3b3b3" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
 const UserPlusIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
 const UserCheckIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
-// 👇 NEW ICONS FOR PLAYLISTS
 const PlusIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
 const ListIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+// 👇 NEW: Comment Icon
+const MessageIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
 
 function App() {
   const [user, setUser] = useState(null)
@@ -45,17 +46,21 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("") 
   const [searchResults, setSearchResults] = useState(null)
 
-  // Follow States
   const [isFollowing, setIsFollowing] = useState(false)
   const [followerCount, setFollowerCount] = useState(0) 
   const [myFollowerCount, setMyFollowerCount] = useState(0)
 
-  // 👇 NEW: Playlist States
   const [playlists, setPlaylists] = useState([])
   const [viewedPlaylist, setViewedPlaylist] = useState(null)
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false)
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false)
   const [songToAdd, setSongToAdd] = useState(null)
+
+  // 👇 NEW: Comment States
+  const [showCommentsModal, setShowCommentsModal] = useState(false)
+  const [activeSongForComments, setActiveSongForComments] = useState(null)
+  const [comments, setComments] = useState([])
+  const [newCommentText, setNewCommentText] = useState("")
 
   const [showUpload, setShowUpload] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -79,7 +84,6 @@ function App() {
           if(user.role === 'ARTIST') {
               fetch(`http://localhost:8080/follow/count?artistId=${user.id}`).then(res => res.json()).then(setMyFollowerCount)
           }
-          // 👇 NEW: Fetch Playlists
           fetchPlaylists();
       }
   }, [user])
@@ -101,7 +105,6 @@ function App() {
   const fetchSongs = () => fetch('http://localhost:8080/songs').then(res => res.json()).then(setSongs)
   const fetchLikedIDs = () => fetch(`http://localhost:8080/likes/${user.id}/ids`).then(res => res.json()).then(setLikedSongIds)
   const fetchAllUsers = () => fetch('http://localhost:8080/users/artists').then(res => res.json()).then(setAllUsers) 
-  // 👇 NEW: Fetch Playlists
   const fetchPlaylists = () => fetch(`http://localhost:8080/playlists/user/${user.id}`).then(res => res.json()).then(setPlaylists)
 
   const handleDeleteUser = (userId) => {
@@ -115,28 +118,37 @@ function App() {
         .then(res => res.json()).then(newStatus => { setIsFollowing(newStatus); setFollowerCount(prev => newStatus ? prev + 1 : prev - 1); })
   }
 
-  // 👇 NEW: Create Playlist Logic
   const handleCreatePlaylist = (e) => {
       e.preventDefault();
       const name = e.target.name.value;
       fetch(`http://localhost:8080/playlists/create?name=${name}&userId=${user.id}`, { method: 'POST' })
           .then(res => res.json())
-          .then(newPlaylist => {
-              setPlaylists([...playlists, newPlaylist]);
-              setShowCreatePlaylist(false);
-          })
+          .then(newPlaylist => { setPlaylists([...playlists, newPlaylist]); setShowCreatePlaylist(false); })
   }
 
-  // 👇 NEW: Add to Playlist Logic
   const handleAddToPlaylist = (playlistId) => {
       fetch(`http://localhost:8080/playlists/${playlistId}/add?songId=${songToAdd.id}`, { method: 'POST' })
           .then(res => res.json())
-          .then(updatedPlaylist => {
-              // Update local state so if we view that playlist, it's fresh
-              setPlaylists(playlists.map(p => p.id === playlistId ? updatedPlaylist : p));
-              alert(`Added to ${updatedPlaylist.name}!`);
-              setShowAddToPlaylist(false);
-              setSongToAdd(null);
+          .then(updatedPlaylist => { setPlaylists(playlists.map(p => p.id === playlistId ? updatedPlaylist : p)); alert(`Added to ${updatedPlaylist.name}!`); setShowAddToPlaylist(false); setSongToAdd(null); })
+  }
+
+  // 👇 NEW: Comment Logic
+  const handleOpenComments = (song) => {
+      setActiveSongForComments(song);
+      fetch(`http://localhost:8080/comments/song/${song.id}`)
+          .then(res => res.json())
+          .then(setComments);
+      setShowCommentsModal(true);
+  }
+
+  const handlePostComment = (e) => {
+      e.preventDefault();
+      if(!newCommentText.trim()) return;
+      fetch(`http://localhost:8080/comments/add?text=${newCommentText}&userId=${user.id}&songId=${activeSongForComments.id}`, { method: 'POST' })
+          .then(res => res.json())
+          .then(newComment => {
+              setComments([...comments, newComment]);
+              setNewCommentText(""); // Clear input
           })
   }
 
@@ -201,7 +213,6 @@ function App() {
             <div className={`nav-item ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}><UserIcon /> <span>My Profile</span></div>
         </div>
         
-        {/* 👇 NEW: PLAYLISTS SECTION IN SIDEBAR */}
         {user.role !== 'ADMIN' && (
             <div className="nav-section">
                 <div style={{padding: '0 16px', marginBottom: '10px', fontWeight: 'bold', fontSize: '0.8rem', color: '#b3b3b3', letterSpacing: '1px'}}>YOUR PLAYLISTS</div>
@@ -260,6 +271,7 @@ function App() {
                             <div style={{overflow:'hidden', maxWidth:'130px'}}><h3 style={titleStyle} title={song.title}>{song.title}</h3><p className="card-desc" style={{fontSize:'0.8rem', margin:0}}>{song.artist}</p></div>
                             <div style={{display:'flex', gap:'5px'}}>
                                 <div onClick={(e) => { e.stopPropagation(); setSongToAdd(song); setShowAddToPlaylist(true); }} style={{cursor:'pointer', padding:'5px'}}><PlusIcon /></div>
+                                <div onClick={(e) => { e.stopPropagation(); handleOpenComments(song); }} style={{cursor:'pointer', padding:'5px'}}><MessageIcon /></div>
                                 <div onClick={(e) => toggleLike(e, song)} style={{cursor:'pointer', padding:'5px'}}><HeartIcon filled={likedSongIds.includes(song.id)} /></div>
                             </div>
                         </div>
@@ -275,14 +287,13 @@ function App() {
         )}
 
         {view === 'liked' && (
-            <><div className="dashboard-hero" style={{background: 'linear-gradient(135deg, #450af5 0%, #c4efd9 100%)'}}><h1>Your Library</h1><p>{likedSongsList.length} Liked Songs</p></div><div className="track-list-container">{likedSongsList.length > 0 ? likedSongsList.map(song => (<div key={song.id} className="track-row" onClick={() => playSong(song)}><img src={getSongCover(song)} className="track-img-small" style={{objectFit:'cover'}} /><div className="track-info"><div className="track-title">{song.title}</div><div className="track-meta">{song.artist}</div></div><div className="track-actions"><div onClick={(e) => { e.stopPropagation(); setSongToAdd(song); setShowAddToPlaylist(true); }} style={{cursor:'pointer', marginRight:'15px'}}><PlusIcon /></div><div onClick={(e) => toggleLike(e, song)} style={{marginRight:'15px', cursor:'pointer'}}><HeartIcon filled={true} /></div>{(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}</div></div>)) : (<div style={{textAlign:'center', padding:'50px', color:'#888'}}><h3>No liked songs yet.</h3><button className="login-btn" style={{width:'auto', marginTop:'10px'}} onClick={() => setView('home')}>Find Music</button></div>)}</div></>
+            <><div className="dashboard-hero" style={{background: 'linear-gradient(135deg, #450af5 0%, #c4efd9 100%)'}}><h1>Your Library</h1><p>{likedSongsList.length} Liked Songs</p></div><div className="track-list-container">{likedSongsList.length > 0 ? likedSongsList.map(song => (<div key={song.id} className="track-row" onClick={() => playSong(song)}><img src={getSongCover(song)} className="track-img-small" style={{objectFit:'cover'}} /><div className="track-info"><div className="track-title">{song.title}</div><div className="track-meta">{song.artist}</div></div><div className="track-actions"><div onClick={(e) => { e.stopPropagation(); setSongToAdd(song); setShowAddToPlaylist(true); }} style={{cursor:'pointer', marginRight:'15px'}}><PlusIcon /></div><div onClick={(e) => { e.stopPropagation(); handleOpenComments(song); }} style={{cursor:'pointer', marginRight:'15px'}}><MessageIcon /></div><div onClick={(e) => toggleLike(e, song)} style={{marginRight:'15px', cursor:'pointer'}}><HeartIcon filled={true} /></div>{(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}</div></div>)) : (<div style={{textAlign:'center', padding:'50px', color:'#888'}}><h3>No liked songs yet.</h3><button className="login-btn" style={{width:'auto', marginTop:'10px'}} onClick={() => setView('home')}>Find Music</button></div>)}</div></>
         )}
 
         {view === 'artist' && viewedArtist && (
-            <><div style={{display:'flex', alignItems:'center', gap:'20px', marginBottom:'40px'}}><img src={getImage(viewedArtist)} style={{width:'180px', height:'180px', borderRadius:'50%', objectFit:'cover', boxShadow:'0 10px 40px rgba(0,0,0,0.6)'}} /><div><div style={{display:'flex', alignItems:'center', gap:'15px'}}><h1 style={{fontSize:'3.5rem', margin:0, fontWeight:'800'}}>{viewedArtist.firstName || viewedArtist.username}</h1></div><p style={{color:'#ccc', fontSize:'1.1rem'}}>{viewedArtist.bio || "No bio yet."}</p><div style={{display:'flex', alignItems:'center', gap:'20px', marginTop:'15px'}}><button onClick={toggleFollow} style={{background: isFollowing ? 'transparent' : '#1db954', color: isFollowing ? 'white' : 'black', border: isFollowing ? '1px solid white' : 'none', padding: '8px 20px', borderRadius: '50px', fontWeight: 'bold', cursor: 'pointer', display:'flex', alignItems:'center', gap:'8px'}}>{isFollowing ? <><UserCheckIcon /> Following</> : <><UserPlusIcon /> Follow</>}</button><span style={{color:'#b3b3b3', fontSize:'0.9rem'}}>{followerCount} Followers</span></div></div></div><h3>Songs</h3><div className="artist-grid">{songs.filter(s => s.artist === (viewedArtist.firstName || viewedArtist.username)).map(song => (<div key={song.id} className="artist-card" onClick={() => playSong(song)}><div className="image-box"><img src={getSongCover(song)} className="artist-img" style={{objectFit:'cover'}} /><div className="play-overlay" style={{opacity: (currentSong?.id === song.id && isPlaying) ? 1 : undefined, transform: (currentSong?.id === song.id && isPlaying) ? 'translateY(0)' : undefined}}>{(currentSong?.id === song.id && isPlaying) ? <PauseIcon fill="white"/> : <PlayIcon fill="white"/>}</div></div><div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'10px'}}><h3 className="card-title" style={titleStyle}>{song.title}</h3><div style={{display:'flex', gap:'5px'}}><div onClick={(e) => { e.stopPropagation(); setSongToAdd(song); setShowAddToPlaylist(true); }} style={{cursor:'pointer', padding:'5px'}}><PlusIcon /></div><div onClick={(e) => toggleLike(e, song)} style={{cursor:'pointer', padding:'5px'}}><HeartIcon filled={likedSongIds.includes(song.id)} /></div></div></div></div>))}</div></>
+            <><div style={{display:'flex', alignItems:'center', gap:'20px', marginBottom:'40px'}}><img src={getImage(viewedArtist)} style={{width:'180px', height:'180px', borderRadius:'50%', objectFit:'cover', boxShadow:'0 10px 40px rgba(0,0,0,0.6)'}} /><div><div style={{display:'flex', alignItems:'center', gap:'15px'}}><h1 style={{fontSize:'3.5rem', margin:0, fontWeight:'800'}}>{viewedArtist.firstName || viewedArtist.username}</h1></div><p style={{color:'#ccc', fontSize:'1.1rem'}}>{viewedArtist.bio || "No bio yet."}</p><div style={{display:'flex', alignItems:'center', gap:'20px', marginTop:'15px'}}><button onClick={toggleFollow} style={{background: isFollowing ? 'transparent' : '#1db954', color: isFollowing ? 'white' : 'black', border: isFollowing ? '1px solid white' : 'none', padding: '8px 20px', borderRadius: '50px', fontWeight: 'bold', cursor: 'pointer', display:'flex', alignItems:'center', gap:'8px'}}>{isFollowing ? <><UserCheckIcon /> Following</> : <><UserPlusIcon /> Follow</>}</button><span style={{color:'#b3b3b3', fontSize:'0.9rem'}}>{followerCount} Followers</span></div></div></div><h3>Songs</h3><div className="artist-grid">{songs.filter(s => s.artist === (viewedArtist.firstName || viewedArtist.username)).map(song => (<div key={song.id} className="artist-card" onClick={() => playSong(song)}><div className="image-box"><img src={getSongCover(song)} className="artist-img" style={{objectFit:'cover'}} /><div className="play-overlay" style={{opacity: (currentSong?.id === song.id && isPlaying) ? 1 : undefined, transform: (currentSong?.id === song.id && isPlaying) ? 'translateY(0)' : undefined}}>{(currentSong?.id === song.id && isPlaying) ? <PauseIcon fill="white"/> : <PlayIcon fill="white"/>}</div></div><div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'10px'}}><h3 className="card-title" style={titleStyle}>{song.title}</h3><div style={{display:'flex', gap:'5px'}}><div onClick={(e) => { e.stopPropagation(); setSongToAdd(song); setShowAddToPlaylist(true); }} style={{cursor:'pointer', padding:'5px'}}><PlusIcon /></div><div onClick={(e) => { e.stopPropagation(); handleOpenComments(song); }} style={{cursor:'pointer', padding:'5px'}}><MessageIcon /></div><div onClick={(e) => toggleLike(e, song)} style={{cursor:'pointer', padding:'5px'}}><HeartIcon filled={likedSongIds.includes(song.id)} /></div></div></div></div>))}</div></>
         )}
 
-        {/* 👇 NEW: PLAYLIST DETAIL VIEW */}
         {view === 'playlist' && viewedPlaylist && (
             <>
                 <div className="dashboard-hero" style={{background: 'linear-gradient(135deg, #1e1e1e 0%, #333 100%)'}}>
@@ -295,6 +306,7 @@ function App() {
                             <img src={getSongCover(song)} className="track-img-small" style={{objectFit:'cover'}} />
                             <div className="track-info"><div className="track-title">{song.title}</div><div className="track-meta">{song.artist}</div></div>
                             <div className="track-actions">
+                                <div onClick={(e) => { e.stopPropagation(); handleOpenComments(song); }} style={{cursor:'pointer', marginRight:'15px'}}><MessageIcon /></div>
                                 <div onClick={(e) => toggleLike(e, song)} style={{marginRight:'15px', cursor:'pointer'}}><HeartIcon filled={likedSongIds.includes(song.id)} /></div>
                                 {(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}
                             </div>
@@ -309,42 +321,57 @@ function App() {
         {showUpload && (<div className="premium-modal-overlay"><div className="premium-card"><h2 style={{color:'white', marginBottom:'5px'}}>Upload New Track</h2><form onSubmit={handleUpload}><div className="premium-input-group"><input name="title" className="premium-input" placeholder="Song Title" required /></div><div className="premium-input-group"><label className="file-upload-zone"><MusicFileIcon /><span style={{fontWeight:'600'}}>Select MP3</span><input name="file" type="file" accept=".mp3" required style={{display:'none'}} /></label></div><div className="premium-input-group"><label className="file-upload-zone" style={{borderColor: '#b3b3b3'}}><ImageIcon /><span style={{fontWeight:'600'}}>Select Cover Art</span><input name="cover" type="file" accept="image/*" required style={{display:'none'}} /></label></div><div style={{display:'flex', gap:'15px', marginTop:'30px'}}><button className="login-btn" style={{margin:0}}>🚀 Upload</button><button type="button" onClick={()=>setShowUpload(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'12px 25px', borderRadius:'50px', cursor:'pointer', fontWeight:'bold'}}>Cancel</button></div></form></div></div>)}
         {showUpgradeModal && (<div className="premium-modal-overlay"><div className="premium-card"><div style={{fontSize:'3rem', marginBottom:'10px'}}>💎</div><h2 style={{color:'#1db954', margin:0}}>Artist Plan</h2><form onSubmit={handleUpgrade}><div className="premium-input-group"><textarea className="premium-input" placeholder="Bio..." value={upgradeBio} onChange={e=>setUpgradeBio(e.target.value)} required rows={3} style={{resize:'none'}} /></div><div className="premium-input-group"><label className="file-upload-zone"><CameraIcon /><span>Select Artist Photo</span><input type="file" onChange={e=>setUpgradePic(e.target.files[0])} required style={{display:'none'}} /></label></div><div style={{display:'flex', gap:'15px', marginTop:'20px'}}><button className="login-btn" style={{margin:0, background:'white', color:'black'}}>Pay & Upgrade</button><button type="button" onClick={()=>setShowUpgradeModal(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'12px', borderRadius:'50px', cursor:'pointer'}}>Cancel</button></div></form></div></div>)}
 
-        {/* 👇 NEW: CREATE PLAYLIST MODAL */}
         {showCreatePlaylist && (
             <div className="premium-modal-overlay">
                 <div className="premium-card" style={{width:'300px'}}>
                     <h2 style={{color:'white'}}>Create Playlist</h2>
                     <form onSubmit={handleCreatePlaylist}>
-                        <div className="premium-input-group">
-                            <input name="name" className="premium-input" placeholder="Playlist Name" required autoFocus />
-                        </div>
-                        <div style={{display:'flex', gap:'10px', marginTop:'20px'}}>
-                            <button className="login-btn" style={{margin:0}}>Create</button>
-                            <button type="button" onClick={()=>setShowCreatePlaylist(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'10px 20px', borderRadius:'50px', cursor:'pointer'}}>Cancel</button>
-                        </div>
+                        <div className="premium-input-group"><input name="name" className="premium-input" placeholder="Playlist Name" required autoFocus /></div>
+                        <div style={{display:'flex', gap:'10px', marginTop:'20px'}}><button className="login-btn" style={{margin:0}}>Create</button><button type="button" onClick={()=>setShowCreatePlaylist(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'10px 20px', borderRadius:'50px', cursor:'pointer'}}>Cancel</button></div>
                     </form>
                 </div>
             </div>
         )}
 
-        {/* 👇 NEW: ADD TO PLAYLIST MODAL */}
         {showAddToPlaylist && (
             <div className="premium-modal-overlay">
                 <div className="premium-card" style={{width:'300px', maxHeight:'400px', overflowY:'auto'}}>
                     <h3 style={{color:'white', marginTop:0}}>Add to Playlist</h3>
                     <p style={{fontSize:'0.9rem', color:'#b3b3b3', marginBottom:'20px'}}>Which playlist do you want to add this song to?</p>
-                    {playlists.length > 0 ? (
-                        <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
-                            {playlists.map(p => (
-                                <div key={p.id} onClick={() => handleAddToPlaylist(p.id)} style={{padding:'12px', background:'#333', borderRadius:'8px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px'}}>
-                                    <ListIcon /> {p.name}
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p>No playlists yet. Create one first!</p>
-                    )}
+                    {playlists.length > 0 ? (<div style={{display:'flex', flexDirection:'column', gap:'10px'}}>{playlists.map(p => (<div key={p.id} onClick={() => handleAddToPlaylist(p.id)} style={{padding:'12px', background:'#333', borderRadius:'8px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px'}}><ListIcon /> {p.name}</div>))}</div>) : (<p>No playlists yet. Create one first!</p>)}
                     <button type="button" onClick={()=>{setShowAddToPlaylist(false); setSongToAdd(null)}} style={{width:'100%', background:'transparent', border:'1px solid #555', color:'white', padding:'10px', borderRadius:'50px', marginTop:'20px', cursor:'pointer'}}>Cancel</button>
+                </div>
+            </div>
+        )}
+
+        {/* 👇 NEW: COMMENTS MODAL */}
+        {showCommentsModal && activeSongForComments && (
+            <div className="premium-modal-overlay">
+                <div className="premium-card" style={{width:'400px', maxHeight:'600px', display:'flex', flexDirection:'column'}}>
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px'}}>
+                        <h2 style={{margin:0, fontSize:'1.2rem'}}>Comments</h2>
+                        <button onClick={()=>setShowCommentsModal(false)} style={{background:'transparent', border:'none', color:'white', cursor:'pointer', fontSize:'1.5rem'}}>×</button>
+                    </div>
+                    
+                    <div style={{flex:1, overflowY:'auto', background:'#222', borderRadius:'8px', padding:'15px', marginBottom:'15px'}}>
+                        {comments.length > 0 ? comments.map(c => (
+                            <div key={c.id} style={{marginBottom:'12px', paddingBottom:'12px', borderBottom:'1px solid #333'}}>
+                                <div style={{fontWeight:'bold', fontSize:'0.9rem', color:'#1db954', marginBottom:'2px'}}>{c.user?.username || "Unknown"}</div>
+                                <div style={{fontSize:'0.95rem'}}>{c.text}</div>
+                            </div>
+                        )) : <div style={{textAlign:'center', color:'#777', marginTop:'20px'}}>No comments yet. Be the first!</div>}
+                    </div>
+
+                    <form onSubmit={handlePostComment} style={{display:'flex', gap:'10px'}}>
+                        <input 
+                            className="premium-input" 
+                            placeholder="Write a comment..." 
+                            value={newCommentText}
+                            onChange={(e) => setNewCommentText(e.target.value)}
+                            required
+                        />
+                        <button className="login-btn" style={{width:'auto', margin:0}}>Post</button>
+                    </form>
                 </div>
             </div>
         )}
