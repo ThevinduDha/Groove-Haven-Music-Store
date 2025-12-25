@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css' 
 import Login from './Login'
+import { Toaster, toast } from 'react-hot-toast' // 👈 NEW LIBRARY
 
 // --- ICONS ---
 const HomeIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
@@ -32,12 +33,15 @@ const ListIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" str
 const MessageIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
 const EditIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
 const SmallTrashIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="red" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+// 👇 NEW: Menu Icon for Mobile
+const MenuIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
 
 function App() {
   const [user, setUser] = useState(null)
   const [view, setView] = useState('home')
   const [viewedArtist, setViewedArtist] = useState(null)
   const [isArtistMode, setIsArtistMode] = useState(true)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false) // 👈 NEW STATE
   
   const [artists, setArtists] = useState([]) 
   const [songs, setSongs] = useState([])
@@ -57,7 +61,6 @@ function App() {
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false)
   const [songToAdd, setSongToAdd] = useState(null)
 
-  // Comment States
   const [showCommentsModal, setShowCommentsModal] = useState(false)
   const [activeSongForComments, setActiveSongForComments] = useState(null)
   const [comments, setComments] = useState([])
@@ -91,6 +94,11 @@ function App() {
       }
   }, [user])
 
+  // Close mobile menu when view changes
+  useEffect(() => {
+      setMobileMenuOpen(false);
+  }, [view]);
+
   useEffect(() => {
       if(searchQuery.length > 0) {
           fetch(`http://localhost:8080/search?query=${searchQuery}`).then(res => res.json()).then(data => setSearchResults(data))
@@ -112,7 +120,7 @@ function App() {
 
   const handleDeleteUser = (userId) => {
       if(window.confirm("⚠️ Are you sure? This will delete the user and their likes!")) {
-          fetch(`http://localhost:8080/users/${userId}`, { method: 'DELETE' }).then(() => { alert("User Deleted!"); setAllUsers(allUsers.filter(u => u.id !== userId)); }).catch(() => alert("❌ Error deleting user"));
+          fetch(`http://localhost:8080/users/${userId}`, { method: 'DELETE' }).then(() => { toast.success("User Deleted!"); setAllUsers(allUsers.filter(u => u.id !== userId)); }).catch(() => toast.error("❌ Error deleting user"));
       }
   }
 
@@ -126,13 +134,13 @@ function App() {
       const name = e.target.name.value;
       fetch(`http://localhost:8080/playlists/create?name=${name}&userId=${user.id}`, { method: 'POST' })
           .then(res => res.json())
-          .then(newPlaylist => { setPlaylists([...playlists, newPlaylist]); setShowCreatePlaylist(false); })
+          .then(newPlaylist => { setPlaylists([...playlists, newPlaylist]); setShowCreatePlaylist(false); toast.success("Playlist Created!"); })
   }
 
   const handleAddToPlaylist = (playlistId) => {
       fetch(`http://localhost:8080/playlists/${playlistId}/add?songId=${songToAdd.id}`, { method: 'POST' })
           .then(res => res.json())
-          .then(updatedPlaylist => { setPlaylists(playlists.map(p => p.id === playlistId ? updatedPlaylist : p)); alert(`Added to ${updatedPlaylist.name}!`); setShowAddToPlaylist(false); setSongToAdd(null); })
+          .then(updatedPlaylist => { setPlaylists(playlists.map(p => p.id === playlistId ? updatedPlaylist : p)); toast.success(`Added to ${updatedPlaylist.name}!`); setShowAddToPlaylist(false); setSongToAdd(null); })
   }
 
   const handleOpenComments = (song) => {
@@ -148,13 +156,16 @@ function App() {
       if(!newCommentText.trim()) return;
       fetch(`http://localhost:8080/comments/add?text=${newCommentText}&userId=${user.id}&songId=${activeSongForComments.id}`, { method: 'POST' })
           .then(res => res.json())
-          .then(newComment => { setComments([...comments, newComment]); setNewCommentText(""); })
+          .then(newComment => { setComments([...comments, newComment]); setNewCommentText(""); toast.success("Comment Posted"); })
   }
 
   const handleDeleteComment = (commentId) => {
     if(window.confirm("Delete this comment?")) {
         fetch(`http://localhost:8080/comments/${commentId}`, { method: 'DELETE' })
-            .then(() => setComments(comments.filter(c => c.id !== commentId)));
+            .then(() => {
+                setComments(comments.filter(c => c.id !== commentId));
+                toast.success("Comment Deleted");
+            });
     }
   }
 
@@ -169,6 +180,7 @@ function App() {
         .then(updated => {
             setComments(comments.map(c => c.id === commentId ? updated : c));
             setEditingCommentId(null);
+            toast.success("Comment Updated");
         })
   }
 
@@ -195,12 +207,15 @@ function App() {
   const toggleLike = (e, song) => {
       e.stopPropagation(); 
       fetch(`http://localhost:8080/likes/toggle?userId=${user.id}&songId=${song.id}`, { method: 'POST' })
-      .then(res => res.json()).then(isLiked => { isLiked ? setLikedSongIds([...likedSongIds, song.id]) : setLikedSongIds(likedSongIds.filter(id => id !== song.id)); });
+      .then(res => res.json()).then(isLiked => { 
+          isLiked ? setLikedSongIds([...likedSongIds, song.id]) : setLikedSongIds(likedSongIds.filter(id => id !== song.id)); 
+          toast.success(isLiked ? "Added to Liked Songs" : "Removed from Liked Songs");
+      });
   }
 
-  const handleProfileUpdate = (e) => { e.preventDefault(); fetch(`http://localhost:8080/users/${user.id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ firstName: editName }) }).then(res => res.json()).then(updatedUser => { if(editPic) { const formData = new FormData(); formData.append("file", editPic); fetch(`http://localhost:8080/users/${user.id}/image`, {method:'POST', body:formData}).then(res => res.json()).then(finalUser => { setUser(finalUser); alert("✅ Profile Updated!"); setView('home'); }).catch(() => { alert("⚠️ Name saved, but image too big."); setView('home'); }) } else { setUser(updatedUser); alert("✅ Name Updated!"); setView('home'); }}).catch(() => alert("❌ Update Failed.")) }
-  const handleUpgrade = (e) => { e.preventDefault(); if(!upgradePic) return alert("Artists need a profile picture!"); if(window.confirm("💎 Pay $9.99 to become an Artist?")) { fetch(`http://localhost:8080/users/${user.id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ role: 'ARTIST', bio: upgradeBio }) }).then(res => res.json()).then(() => { const formData = new FormData(); formData.append("file", upgradePic); fetch(`http://localhost:8080/users/${user.id}/image`, {method:'POST', body:formData}).then(res => res.json()).then(finalUser => { setUser(finalUser); setShowUpgradeModal(false); alert("🎉 Welcome to the Artist Club!"); fetchArtists(); }) }) } }
-  const handleUpload = (e) => { e.preventDefault(); const formData = new FormData(); formData.append("title", e.target.title.value); formData.append("artist", user.firstName || user.username); formData.append("file", e.target.file.files[0]); formData.append("cover", e.target.cover.files[0]); fetch('http://localhost:8080/songs/upload', { method: 'POST', body: formData }).then(() => { alert("🎵 Song & Cover Uploaded!"); setShowUpload(false); fetchSongs(); }).catch(() => alert("❌ Upload Failed (Check file sizes!)")); }
+  const handleProfileUpdate = (e) => { e.preventDefault(); fetch(`http://localhost:8080/users/${user.id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ firstName: editName }) }).then(res => res.json()).then(updatedUser => { if(editPic) { const formData = new FormData(); formData.append("file", editPic); fetch(`http://localhost:8080/users/${user.id}/image`, {method:'POST', body:formData}).then(res => res.json()).then(finalUser => { setUser(finalUser); toast.success("Profile Updated!"); setView('home'); }).catch(() => { toast.error("⚠️ Name saved, but image too big."); setView('home'); }) } else { setUser(updatedUser); toast.success("Name Updated!"); setView('home'); }}).catch(() => toast.error("❌ Update Failed.")) }
+  const handleUpgrade = (e) => { e.preventDefault(); if(!upgradePic) return toast.error("Artists need a profile picture!"); if(window.confirm("💎 Pay $9.99 to become an Artist?")) { fetch(`http://localhost:8080/users/${user.id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ role: 'ARTIST', bio: upgradeBio }) }).then(res => res.json()).then(() => { const formData = new FormData(); formData.append("file", upgradePic); fetch(`http://localhost:8080/users/${user.id}/image`, {method:'POST', body:formData}).then(res => res.json()).then(finalUser => { setUser(finalUser); setShowUpgradeModal(false); toast.success("🎉 Welcome to the Artist Club!"); fetchArtists(); }) }) } }
+  const handleUpload = (e) => { e.preventDefault(); const formData = new FormData(); formData.append("title", e.target.title.value); formData.append("artist", user.firstName || user.username); formData.append("file", e.target.file.files[0]); formData.append("cover", e.target.cover.files[0]); fetch('http://localhost:8080/songs/upload', { method: 'POST', body: formData }).then(() => { toast.success("🎵 Song & Cover Uploaded!"); setShowUpload(false); fetchSongs(); }).catch(() => toast.error("❌ Upload Failed (Check file sizes!)")); }
 
   const getImage = (u) => u.profilePic ? `http://localhost:8080/music/${u.profilePic}?t=${new Date().getTime()}` : `https://ui-avatars.com/api/?name=${u.username}&background=random`;
   const getSongCover = (s) => s.coverImage ? `http://localhost:8080/music/${s.coverImage}` : `https://ui-avatars.com/api/?name=${s.title}&background=1db954&color=fff&size=200`;
@@ -224,9 +239,16 @@ function App() {
 
   return (
     <div className="app-layout" style={{height: '100vh', overflow: 'hidden'}}>
+      {/* 👇 1. TOAST NOTIFICATIONS CONTAINER */}
+      <Toaster position="top-center" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
+
       {currentSong && <audio ref={audioRef} src={`http://localhost:8080/music/${currentSong.filePath}`} onEnded={()=>setIsPlaying(false)} />}
 
-      <div className="sidebar">
+      {/* 👇 2. MOBILE MENU OVERLAY (Closes menu when clicked outside) */}
+      {mobileMenuOpen && <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}></div>}
+
+      {/* 👇 3. SIDEBAR WITH MOBILE CLASS */}
+      <div className={`sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="logo">GrooveHaven</div>
         <div className="nav-section">
             <div className={`nav-item ${view === 'home' ? 'active' : ''}`} onClick={() => {setView('home'); setViewedArtist(null); setSearchQuery("")}}><HomeIcon /> <span>Home</span></div>
@@ -257,12 +279,18 @@ function App() {
       <div className="main-content" style={{overflowY: 'auto', paddingBottom: currentSong ? '120px' : '40px'}}>
         
         <div className="header-bar" style={{gap:'20px'}}>
+            {/* 👇 4. MOBILE HAMBURGER BUTTON */}
+            <div className="mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                <MenuIcon />
+            </div>
+
             {view === 'artist' && <div onClick={() => setView('home')} style={{cursor:'pointer', marginRight:'20px'}}><BackIcon /></div>}
             <div className="search-container" style={{flex:1, maxWidth:'400px', position:'relative'}}>
                  <input placeholder="What do you want to play?" className="search-input" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{width:'100%', padding:'12px 20px 12px 45px', borderRadius:'50px', border:'none', background:'#333', color:'white', fontSize:'0.9rem'}}/>
                  <div style={{position:'absolute', left:'15px', top:'50%', transform:'translateY(-50%)'}}><SearchIcon /></div>
             </div>
-            <div className="greeting" style={{marginLeft:'auto'}}>{view === 'profile' ? "Account Settings" : view === 'liked' ? "Your Collection" : (view === 'artist' ? viewedArtist.firstName : `Hello, ${user.firstName || user.username}`)}</div>
+            {/* Hide greeting on mobile to save space */}
+            <div className="greeting desktop-only" style={{marginLeft:'auto'}}>{view === 'profile' ? "Account Settings" : view === 'liked' ? "Your Collection" : (view === 'artist' ? viewedArtist.firstName : `Hello, ${user.firstName || user.username}`)}</div>
             {(showArtistDashboard && view === 'home') && (<button className="add-btn-pill" onClick={() => setShowUpload(true)} style={{display:'flex', alignItems:'center', gap:'5px'}}><UploadIcon /> New Drop</button>)}
         </div>
 
@@ -421,7 +449,6 @@ function App() {
       </div>
 
       {currentSong && (
-        // 👇 FIXED: BALANCED PLAYER BAR
         <div className="glass-player-bar" style={{boxSizing: 'border-box', width: '100%', padding: '0 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
             {/* Left Side: Flex 1 */}
             <div style={{display:'flex', alignItems:'center', gap:'15px', flex:1, minWidth:'200px'}}><img src={getSongCover(currentSong)} style={{width:'60px', height:'60px', borderRadius:'6px', objectFit:'cover'}} /><div style={{overflow:'hidden'}}><div style={{fontWeight:'600', fontSize:'0.95rem', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{currentSong.title}</div><div style={{fontSize:'0.8rem', color:'#b3b3b3'}}>{currentSong.artist}</div></div><div onClick={(e) => toggleLike(e, currentSong)} style={{cursor:'pointer', marginLeft:'10px'}}><HeartIcon filled={likedSongIds.includes(currentSong.id)} size={20} /></div></div>
