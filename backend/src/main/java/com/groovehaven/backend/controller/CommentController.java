@@ -9,6 +9,7 @@ import com.groovehaven.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -35,6 +36,7 @@ public class CommentController {
         comment.setText(text);
         comment.setUser(user);
         comment.setSong(song);
+        comment.setCreatedAt(LocalDateTime.now()); // Ensure timestamp is set
 
         return commentRepository.save(comment);
     }
@@ -44,5 +46,19 @@ public class CommentController {
     public List<Comment> getCommentsBySong(@PathVariable Long songId) {
         Song song = songRepository.findById(songId).orElseThrow();
         return commentRepository.findBySong(song);
+    }
+
+    // 3. NEW: Edit a Comment
+    @PutMapping("/{id}")
+    public Comment updateComment(@PathVariable Long id, @RequestParam String text) {
+        Comment comment = commentRepository.findById(id).orElseThrow();
+        comment.setText(text);
+        return commentRepository.save(comment);
+    }
+
+    // 4. NEW: Delete a Comment
+    @DeleteMapping("/{id}")
+    public void deleteComment(@PathVariable Long id) {
+        commentRepository.deleteById(id);
     }
 }
