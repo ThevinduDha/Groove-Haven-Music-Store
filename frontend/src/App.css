@@ -594,3 +594,83 @@ input[type="range"]::-moz-range-track { background: #555; height: 4px; border-ra
     padding: 0 10px;
   }
 }
+
+/* --- TOAST & MOBILE STYLES --- */
+
+/* Mobile Menu Button - Hidden on Desktop */
+.mobile-menu-btn {
+  display: none;
+  cursor: pointer;
+  padding: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+}
+
+/* Hide desktop greeting on mobile to save header space */
+.desktop-only {
+  display: block;
+}
+
+/* Responsive Breakpoint for Mobile Phones */
+@media (max-width: 768px) {
+  .app-layout {
+    flex-direction: column;
+  }
+
+  /* Sidebar becomes a drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 250px;
+    z-index: 1000;
+    background: #000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Overlay to close menu when clicking outside */
+  .mobile-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+  }
+
+  /* Main content takes full width */
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    padding-bottom: 140px; /* Space for player bar */
+  }
+
+  /* Show Menu Button */
+  .mobile-menu-btn {
+    display: block;
+  }
+
+  /* Hide non-essential header items */
+  .desktop-only {
+    display: none;
+  }
+
+  /* Player Bar adjustments */
+  .glass-player-bar {
+    padding: 10px;
+    flex-direction: row;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 0;
+    background: rgba(20, 20, 20, 0.95);
+  }
+}
