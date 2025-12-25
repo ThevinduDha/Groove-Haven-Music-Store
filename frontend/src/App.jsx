@@ -22,7 +22,7 @@ const ShuffleIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="
 const RepeatIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b3b3b3" strokeWidth="2"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
 const VolumeIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b3b3b3" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
 const ShieldIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-const TrashIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+const TrashIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="red" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
 const SwitchIcon = () => <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
 const SearchIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b3b3b3" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
 const UserPlusIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
@@ -278,7 +278,6 @@ function App() {
             </>
         )}
 
-        {/* 👇 UPDATED ARTIST DASHBOARD: NOW WITH COMMENT ICON */}
         {(view === 'home' && showArtistDashboard) && (
             <><div className="dashboard-hero"><h1>Artist Command Center</h1><p>Manage your music, check your stats, and grow your audience.</p></div><div className="stats-container"><div className="stat-card"><span className="stat-number">{mySongs.length}</span><span className="stat-label">Tracks Uploaded</span></div><div className="stat-card"><span className="stat-number">12.5K</span><span className="stat-label">Total Streams</span></div><div className="stat-card"><span className="stat-number">{myFollowerCount}</span><span className="stat-label">Followers</span></div></div><h3 style={{marginBottom:'15px'}}>Your Discography</h3><div className="track-list-container">{mySongs.map(song => (<div key={song.id} className="track-row" onClick={() => playSong(song)}><img src={getSongCover(song)} className="track-img-small" style={{objectFit:'cover'}} /><div className="track-info"><div className="track-title">{song.title}</div><div className="track-meta">Added recently</div></div><div className="track-actions"><div onClick={(e) => { e.stopPropagation(); handleOpenComments(song); }} style={{cursor:'pointer', padding:'5px', marginRight:'10px'}}><MessageIcon /></div>{(currentSong?.id === song.id && isPlaying) ? <PauseIcon /> : <PlayIcon />}</div></div>))}</div></>
         )}
@@ -366,7 +365,7 @@ function App() {
             </div>
         )}
 
-        {/* 👇 PROFESSIONAL COMMENTS MODAL */}
+        {/* COMMENTS MODAL */}
         {showCommentsModal && activeSongForComments && (
             <div className="premium-modal-overlay">
                 <div className="premium-card" style={{width:'450px', maxHeight:'650px', display:'flex', flexDirection:'column', padding:0, overflow:'hidden'}}>
@@ -387,7 +386,6 @@ function App() {
                                         <span style={{fontWeight:'bold', fontSize:'0.9rem', color:'white'}}>{c.user?.username}</span>
                                         <span style={{fontSize:'0.75rem', color:'#666'}}>{getTimeAgo(c.createdAt)}</span>
                                     </div>
-                                    
                                     {editingCommentId === c.id ? (
                                         <div style={{marginBottom:'5px'}}>
                                             <input value={editText} onChange={(e)=>setEditText(e.target.value)} autoFocus style={{width:'100%', padding:'8px', borderRadius:'4px', border:'1px solid #444', background:'#222', color:'white', marginBottom:'5px'}} />
@@ -399,8 +397,6 @@ function App() {
                                     ) : (
                                         <div style={{fontSize:'0.95rem', color:'#ddd', lineHeight:'1.4'}}>{c.text}</div>
                                     )}
-
-                                    {/* Action Buttons (Only for Author) */}
                                     {user.id === c.user?.id && !editingCommentId && (
                                         <div style={{display:'flex', gap:'12px', marginTop:'8px'}}>
                                             <div onClick={()=>handleEditComment(c.id, c.text)} style={{cursor:'pointer', color:'#888', fontSize:'0.8rem', display:'flex', alignItems:'center', gap:'4px'}}><EditIcon /> Edit</div>
@@ -413,17 +409,10 @@ function App() {
                     </div>
 
                     <div style={{padding:'20px', background:'#282828', borderTop:'1px solid #3e3e3e'}}>
-                        <form onSubmit={handlePostComment} style={{display:'flex', gap:'10px'}}>
+                        <form onSubmit={handlePostComment} style={{display:'flex', gap:'10px', alignItems: 'center', marginTop: '10px'}}>
                             <img src={getImage(user)} style={{width:'36px', height:'36px', borderRadius:'50%', objectFit:'cover'}} />
-                            <div style={{flex:1, position:'relative'}}>
-                                <input 
-                                    placeholder="Add a comment..." 
-                                    value={newCommentText}
-                                    onChange={(e) => setNewCommentText(e.target.value)}
-                                    style={{width:'100%', padding:'10px 15px', borderRadius:'20px', border:'none', background:'#3e3e3e', color:'white', outline:'none'}}
-                                />
-                            </div>
-                            <button className="login-btn" style={{width:'auto', margin:0, padding:'0 20px', borderRadius:'20px', fontSize:'0.9rem'}}>Post</button>
+                            <input placeholder="Add a comment..." value={newCommentText} onChange={(e) => setNewCommentText(e.target.value)} style={{flex:1, padding:'12px', borderRadius:'8px', border:'1px solid #444', background:'#222', color:'white', outline:'none'}} />
+                            <button className="login-btn" style={{width:'auto', margin:0, padding:'12px 20px', borderRadius:'8px', background:'#1db954', color:'black', fontWeight:'bold', border:'none', cursor:'pointer'}}>Post</button>
                         </form>
                     </div>
                 </div>
@@ -432,10 +421,16 @@ function App() {
       </div>
 
       {currentSong && (
-        <div className="glass-player-bar">
-            <div style={{display:'flex', alignItems:'center', gap:'15px', flex:1}}><img src={getSongCover(currentSong)} style={{width:'60px', height:'60px', borderRadius:'6px', objectFit:'cover'}} /><div style={{overflow:'hidden'}}><div style={{fontWeight:'600', fontSize:'0.95rem', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{currentSong.title}</div><div style={{fontSize:'0.8rem', color:'#b3b3b3'}}>{currentSong.artist}</div></div><div onClick={(e) => toggleLike(e, currentSong)} style={{cursor:'pointer', marginLeft:'10px'}}><HeartIcon filled={likedSongIds.includes(currentSong.id)} size={20} /></div></div>
-            <div style={{flex:2, display:'flex', flexDirection:'column', alignItems:'center', maxWidth:'600px'}}><div style={{display:'flex', alignItems:'center', gap:'25px', marginBottom:'5px'}}><div style={{cursor:'pointer'}}><ShuffleIcon /></div><div style={{cursor:'pointer'}}><PrevIcon /></div><div onClick={() => setIsPlaying(!isPlaying)} style={{cursor:'pointer', background:'white', borderRadius:'50%', padding:'8px', display:'flex'}}>{isPlaying ? <PauseIcon size={20} fill="black"/> : <PlayIcon size={20} fill="black" />}</div><div style={{cursor:'pointer'}}><NextIcon /></div><div style={{cursor:'pointer'}}><RepeatIcon /></div></div><div style={{display:'flex', alignItems:'center', gap:'10px', width:'100%', fontSize:'0.75rem', color:'#b3b3b3'}}><span>{formatTime(currentTime)}</span><input type="range" min="0" max={duration || 0} value={currentTime} onChange={handleSeek} style={{flex:1}} /><span>{formatTime(duration)}</span></div></div>
-            <div style={{flex:1, display:'flex', justifyContent:'flex-end', alignItems:'center', gap:'10px'}}><VolumeIcon /><input type="range" min="0" max="1" step="0.01" value={volume} onChange={(e) => setVolume(e.target.value)} style={{width:'100px'}} /></div>
+        // 👇 FIXED: BALANCED PLAYER BAR
+        <div className="glass-player-bar" style={{boxSizing: 'border-box', width: '100%', padding: '0 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+            {/* Left Side: Flex 1 */}
+            <div style={{display:'flex', alignItems:'center', gap:'15px', flex:1, minWidth:'200px'}}><img src={getSongCover(currentSong)} style={{width:'60px', height:'60px', borderRadius:'6px', objectFit:'cover'}} /><div style={{overflow:'hidden'}}><div style={{fontWeight:'600', fontSize:'0.95rem', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{currentSong.title}</div><div style={{fontSize:'0.8rem', color:'#b3b3b3'}}>{currentSong.artist}</div></div><div onClick={(e) => toggleLike(e, currentSong)} style={{cursor:'pointer', marginLeft:'10px'}}><HeartIcon filled={likedSongIds.includes(currentSong.id)} size={20} /></div></div>
+            
+            {/* Middle: NO Flex 2, just fixed width container centered by margins/flex */}
+            <div style={{display:'flex', flexDirection:'column', alignItems:'center', width:'40%', maxWidth:'600px'}}><div style={{display:'flex', alignItems:'center', gap:'25px', marginBottom:'5px'}}><div style={{cursor:'pointer'}}><ShuffleIcon /></div><div style={{cursor:'pointer'}}><PrevIcon /></div><div onClick={() => setIsPlaying(!isPlaying)} style={{cursor:'pointer', background:'white', borderRadius:'50%', padding:'8px', display:'flex'}}>{isPlaying ? <PauseIcon size={20} fill="black"/> : <PlayIcon size={20} fill="black" />}</div><div style={{cursor:'pointer'}}><NextIcon /></div><div style={{cursor:'pointer'}}><RepeatIcon /></div></div><div style={{display:'flex', alignItems:'center', gap:'10px', width:'100%', fontSize:'0.75rem', color:'#b3b3b3'}}><span>{formatTime(currentTime)}</span><input type="range" min="0" max={duration || 0} value={currentTime} onChange={handleSeek} style={{flex:1}} /><span>{formatTime(duration)}</span></div></div>
+            
+            {/* Right Side: Flex 1 (Same as Left) */}
+            <div style={{display:'flex', alignItems:'center', gap:'10px', flex: 1, minWidth: '120px', justifyContent: 'flex-end'}}><VolumeIcon /><input type="range" min="0" max="1" step="0.01" value={volume} onChange={(e) => setVolume(e.target.value)} style={{width:'100px'}} /></div>
         </div>
       )}
     </div>
