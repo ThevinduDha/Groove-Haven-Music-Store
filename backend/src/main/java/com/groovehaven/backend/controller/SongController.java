@@ -1,7 +1,9 @@
 package com.groovehaven.backend.controller;
 
 import com.groovehaven.backend.entity.Song;
+import com.groovehaven.backend.entity.Album;
 import com.groovehaven.backend.repository.SongRepository;
+import com.groovehaven.backend.repository.AlbumRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -9,7 +11,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
@@ -22,7 +23,10 @@ public class SongController {
     @Autowired
     private SongRepository songRepository;
 
-    // 👇 KEEP YOUR DESKTOP PATH HERE!
+    @Autowired // ✅ Ensure this is autowired
+    private AlbumRepository albumRepository;
+
+    // 👇 Update this path to your specific folder if needed
     private static final String UPLOAD_DIR = "C:/Users/DELL/Desktop/groove-haven/GrooveHaven_Music/";
 
     @GetMapping
@@ -35,7 +39,8 @@ public class SongController {
             @RequestParam("title") String title,
             @RequestParam("artist") String artist,
             @RequestParam("file") MultipartFile file,
-            @RequestParam("cover") MultipartFile cover) throws IOException { // 👈 Added 'cover' param
+            @RequestParam("cover") MultipartFile cover, // 👈 ✅ COMMA ADDED HERE
+            @RequestParam(value = "albumId", required = false) Long albumId) throws IOException {
 
         // 1. Create directory if needed
         File directory = new File(UPLOAD_DIR);
@@ -49,12 +54,18 @@ public class SongController {
         String uniqueCoverName = UUID.randomUUID().toString() + "_" + cover.getOriginalFilename();
         Files.write(Paths.get(UPLOAD_DIR + uniqueCoverName), cover.getBytes());
 
-        // 4. Save to DB
+        // 4. Create Song Object
         Song song = new Song();
         song.setTitle(title);
         song.setArtist(artist);
         song.setFilePath(uniqueMp3Name);
-        song.setCoverImage(uniqueCoverName); // 👈 Save the image name
+        song.setCoverImage(uniqueCoverName);
+
+        // 5. Link Album if provided
+        if (albumId != null) {
+            Album album = albumRepository.findById(albumId).orElse(null);
+            song.setAlbum(album);
+        }
 
         return songRepository.save(song);
     }
