@@ -69,4 +69,13 @@ public class SongController {
 
         return songRepository.save(song);
     }
+    @PostMapping("/{id}/play")
+    public void playSong(@PathVariable Long id) {
+        Song song = songRepository.findById(id).orElseThrow();
+        song.setStreamCount(song.getStreamCount() + 1);
+        songRepository.save(song);
+    }
+
+
+
 }
