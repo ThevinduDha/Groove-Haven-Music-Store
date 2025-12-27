@@ -15,6 +15,8 @@ public class Song {
     private String filePath;
     private String coverImage;
 
+    private int streamCount = 0;
+
     // 👇 The correct link to the Album entity
     @ManyToOne
     @JoinColumn(name = "album_id")
@@ -70,4 +72,6 @@ public class Song {
     public void setAlbum(Album album) {
         this.album = album;
     }
+    public int getStreamCount() { return streamCount; }
+    public void setStreamCount(int streamCount) { this.streamCount = streamCount; }
 }
