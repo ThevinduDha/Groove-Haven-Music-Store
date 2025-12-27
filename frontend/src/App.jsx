@@ -34,7 +34,6 @@ const MessageIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="
 const EditIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
 const SmallTrashIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="red" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
 const MenuIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-// 👇 NEW: Disc Icon for Albums
 const DiscIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
 
 
@@ -95,7 +94,7 @@ function App() {
           if(user.role === 'ADMIN') fetchAllUsers();
           if(user.role === 'ARTIST') {
               fetch(`http://localhost:8080/follow/count?artistId=${user.id}`).then(res => res.json()).then(setMyFollowerCount);
-              fetchAlbums(user.id); // 👈 Fetch albums on login
+              fetchAlbums(user.id); 
           }
           fetchPlaylists();
       }
@@ -195,14 +194,27 @@ function App() {
   useEffect(() => { if(currentSong && audioRef.current) { if(isPlaying) { const p = audioRef.current.play(); if(p !== undefined) p.catch(()=>setIsPlaying(false)); } else { audioRef.current.pause(); } } }, [currentSong, isPlaying])
   useEffect(() => { const audio = audioRef.current; if(!audio) return; const updateTime = () => setCurrentTime(audio.currentTime); const updateDuration = () => setDuration(audio.duration); const handleEnded = () => setIsPlaying(false); audio.addEventListener('timeupdate', updateTime); audio.addEventListener('loadedmetadata', updateDuration); audio.addEventListener('ended', handleEnded); audio.volume = volume; return () => { audio.removeEventListener('timeupdate', updateTime); audio.removeEventListener('loadedmetadata', updateDuration); audio.removeEventListener('ended', handleEnded); } }, [currentSong, volume]);
 
-  const playSong = (song) => { if (currentSong && currentSong.id === song.id) setIsPlaying(!isPlaying); else { setCurrentSong(song); setIsPlaying(true); } }
+  const playSong = (song) => { 
+      if (currentSong && currentSong.id === song.id) {
+          setIsPlaying(!isPlaying); 
+      } else { 
+          setCurrentSong(song); 
+          setIsPlaying(true);
+          
+          // 👇 NOTIFY BACKEND & UPDATE LOCAL STREAM COUNT
+          fetch(`http://localhost:8080/songs/${song.id}/play`, { method: 'POST' });
+          setSongs(prevSongs => prevSongs.map(s => 
+              s.id === song.id ? { ...s, streamCount: (s.streamCount || 0) + 1 } : s
+          ));
+      } 
+  }
+
   const handleSeek = (e) => { const newTime = e.target.value; audioRef.current.currentTime = newTime; setCurrentTime(newTime); }
   const formatTime = (time) => { if(isNaN(time)) return "0:00"; const m = Math.floor(time / 60); const s = Math.floor(time % 60); return `${m}:${s.toString().padStart(2, '0')}`; }
   const toggleLike = (e, song) => { e.stopPropagation(); fetch(`http://localhost:8080/likes/toggle?userId=${user.id}&songId=${song.id}`, { method: 'POST' }).then(res => res.json()).then(isLiked => { isLiked ? setLikedSongIds([...likedSongIds, song.id]) : setLikedSongIds(likedSongIds.filter(id => id !== song.id)); toast.success(isLiked ? "Added to Liked Songs" : "Removed from Liked Songs"); }); }
   const handleProfileUpdate = (e) => { e.preventDefault(); fetch(`http://localhost:8080/users/${user.id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ firstName: editName }) }).then(res => res.json()).then(updatedUser => { if(editPic) { const formData = new FormData(); formData.append("file", editPic); fetch(`http://localhost:8080/users/${user.id}/image`, {method:'POST', body:formData}).then(res => res.json()).then(finalUser => { setUser(finalUser); toast.success("Profile Updated!"); setView('home'); }).catch(() => { toast.error("⚠️ Name saved, but image too big."); setView('home'); }) } else { setUser(updatedUser); toast.success("Name Updated!"); setView('home'); }}).catch(() => toast.error("❌ Update Failed.")) }
   const handleUpgrade = (e) => { e.preventDefault(); if(!upgradePic) return toast.error("Artists need a profile picture!"); if(window.confirm("💎 Pay $9.99 to become an Artist?")) { fetch(`http://localhost:8080/users/${user.id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ role: 'ARTIST', bio: upgradeBio }) }).then(res => res.json()).then(() => { const formData = new FormData(); formData.append("file", upgradePic); fetch(`http://localhost:8080/users/${user.id}/image`, {method:'POST', body:formData}).then(res => res.json()).then(finalUser => { setUser(finalUser); setShowUpgradeModal(false); toast.success("🎉 Welcome to the Artist Club!"); fetchArtists(); }) }) } }
   
-  // 👇 UPDATED UPLOAD: Sends Album ID
   const handleUpload = (e) => { 
       e.preventDefault(); 
       const formData = new FormData(); 
@@ -284,7 +296,6 @@ function App() {
                  <div style={{position:'absolute', left:'15px', top:'50%', transform:'translateY(-50%)'}}><SearchIcon /></div>
             </div>
             <div className="greeting desktop-only" style={{marginLeft:'auto'}}>{view === 'profile' ? "Account Settings" : view === 'liked' ? "Your Collection" : (view === 'artist' ? viewedArtist.firstName : `Hello, ${user.firstName || user.username}`)}</div>
-            {/* 👇 UPDATED BUTTONS: New Drop & New Album */}
             {(showArtistDashboard && view === 'home') && (
                 <div style={{display:'flex', gap:'10px'}}>
                     <button className="add-btn-pill" onClick={() => setShowCreateAlbum(true)} style={{display:'flex', alignItems:'center', gap:'5px', background:'#555'}}><DiscIcon /> New Album</button>
@@ -308,9 +319,13 @@ function App() {
         {(view === 'home' && showArtistDashboard) && (
             <>
                 <div className="dashboard-hero"><h1>Artist Command Center</h1><p>Manage your music, check your stats, and grow your audience.</p></div>
-                <div className="stats-container"><div className="stat-card"><span className="stat-number">{mySongs.length}</span><span className="stat-label">Tracks Uploaded</span></div><div className="stat-card"><span className="stat-number">12.5K</span><span className="stat-label">Total Streams</span></div><div className="stat-card"><span className="stat-number">{myFollowerCount}</span><span className="stat-label">Followers</span></div></div>
+                <div className="stats-container">
+                    <div className="stat-card"><span className="stat-number">{mySongs.length}</span><span className="stat-label">Tracks Uploaded</span></div>
+                    {/* 👇 UPDATED: Dynamic Total Streams Calculation */}
+                    <div className="stat-card"><span className="stat-number">{mySongs.reduce((total, song) => total + (song.streamCount || 0), 0)}</span><span className="stat-label">Total Streams</span></div>
+                    <div className="stat-card"><span className="stat-number">{myFollowerCount}</span><span className="stat-label">Followers</span></div>
+                </div>
                 
-                {/* 👇 NEW ALBUM SECTION */}
                 <h3 style={{marginBottom:'15px'}}>Your Albums</h3>
                 <div style={{display:'flex', gap:'20px', overflowX:'auto', paddingBottom:'20px', marginBottom:'30px'}}>
                     {myAlbums.length > 0 ? myAlbums.map(album => (
@@ -358,8 +373,6 @@ function App() {
 
         {/* MODALS */}
         {view === 'profile' && (<div className="profile-editor-container"><form onSubmit={handleProfileUpdate}><div className="profile-avatar-wrapper"><label htmlFor="profile-upload" style={{cursor: 'pointer'}}><img src={editPic ? URL.createObjectURL(editPic) : getImage(user)} className="profile-avatar-large" style={{objectFit:'cover'}} /><div className="avatar-edit-overlay"><CameraIcon /></div></label><input id="profile-upload" type="file" onChange={e=>setEditPic(e.target.files[0])} style={{display:'none'}} /></div><div className="premium-input-group"><label className="premium-label">Display Name</label><input className="premium-input" value={editName} onChange={e=>setEditName(e.target.value)} placeholder="How should we call you?" /></div><div className="premium-input-group"><label className="premium-label">Role</label><div style={{color:'white', fontWeight:'bold', fontSize:'1.2rem', display:'flex', alignItems:'center', gap:'10px'}}>{user.role} {user.role === 'ARTIST' && <span style={{fontSize:'0.8rem', background:'#1db954', padding:'2px 8px', borderRadius:'10px', color:'black'}}>VERIFIED</span>}</div></div><button type="submit" className="login-btn" style={{marginTop:'20px'}}>💾 Save Profile Changes</button></form></div>)}
-        
-        {/* 👇 UPDATED UPLOAD MODAL WITH ALBUM SELECT */}
         {showUpload && (<div className="premium-modal-overlay"><div className="premium-card"><h2 style={{color:'white', marginBottom:'5px'}}>Upload New Track</h2><form onSubmit={handleUpload}><div className="premium-input-group"><input name="title" className="premium-input" placeholder="Song Title" required /></div>
         <div className="premium-input-group">
             <select name="albumId" className="premium-input" style={{background:'#222'}}>
@@ -369,7 +382,6 @@ function App() {
         </div>
         <div className="premium-input-group"><label className="file-upload-zone"><MusicFileIcon /><span style={{fontWeight:'600'}}>Select MP3</span><input name="file" type="file" accept=".mp3" required style={{display:'none'}} /></label></div><div className="premium-input-group"><label className="file-upload-zone" style={{borderColor: '#b3b3b3'}}><ImageIcon /><span style={{fontWeight:'600'}}>Select Cover Art</span><input name="cover" type="file" accept="image/*" required style={{display:'none'}} /></label></div><div style={{display:'flex', gap:'15px', marginTop:'30px'}}><button className="login-btn" style={{margin:0}}>🚀 Upload</button><button type="button" onClick={()=>setShowUpload(false)} style={{background:'transparent', border:'1px solid #555', color:'white', padding:'12px 25px', borderRadius:'50px', cursor:'pointer', fontWeight:'bold'}}>Cancel</button></div></form></div></div>)}
         
-        {/* 👇 NEW CREATE ALBUM MODAL */}
         {showCreateAlbum && (
             <div className="premium-modal-overlay">
                 <div className="premium-card">
