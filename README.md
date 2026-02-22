@@ -115,16 +115,6 @@ npm install
 npm run dev
 Visit http://localhost:5173
 
-🗺️ Database Schema
-
-┌─────────┐     ┌──────────┐     ┌─────────┐
-│  Users  │────▶│  Songs   │◀────│  Albums │
-└─────────┘     └──────────┘     └─────────┘
-     │                │                │
-     ▼                ▼                ▼
-┌─────────┐     ┌──────────┐     ┌─────────┐
-│ Follows │     │ Comments │     │Playlists│
-└─────────┘     └──────────┘     └─────────┘
 
 📝 License
 This project is licensed under the MIT License - see the LICENSE file for details.
