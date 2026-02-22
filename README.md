@@ -86,11 +86,13 @@
 
 ### ⚡ Installation
 
+---
 #### 1️⃣ Database Setup
 ```sql
 CREATE DATABASE groovehaven_db;
 ```
 
+---
 ###2️⃣ Backend Configuration
 
 Navigate to the backend folder and update src/main/resources/application.properties:
@@ -104,7 +106,7 @@ spring.jpa.hibernate.ddl-auto=update
 upload.path=C:/Users/YourName/Desktop/GrooveHaven_Music/
 
 Run the backend:
-
+---
 bash
 mvn spring-boot:run
 3️⃣ Frontend Setup
@@ -115,11 +117,15 @@ npm install
 npm run dev
 Visit http://localhost:5173
 
-
+---
 📝 License
+---
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+---
 👨‍💻 Author
+---
+
 <div align="center">
 Thevindu Dharmadasa
 Full-Stack Developer
