@@ -93,7 +93,7 @@ CREATE DATABASE groovehaven_db;
 ```
 
 ---
-###2️⃣ Backend Configuration
+### 2️⃣ Backend Configuration
 
 Navigate to the backend folder and update src/main/resources/application.properties:
 
@@ -109,7 +109,8 @@ Run the backend:
 ---
 bash
 mvn spring-boot:run
-3️⃣ Frontend Setup
+
+### 3️⃣ Frontend Setup
 Navigate to the frontend folder:
 
 bash
@@ -118,12 +119,12 @@ npm run dev
 Visit http://localhost:5173
 
 ---
-📝 License
+### 📝 License
 ---
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
-👨‍💻 Author
+### 👨‍💻 Author
 ---
 
 <div align="center">
